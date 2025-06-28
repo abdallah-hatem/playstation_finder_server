@@ -97,16 +97,16 @@ export class RoomController {
     return this.roomService.update(id, updateRoomDto);
   }
 
-  @Patch(':id/availability')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update room availability' })
-  @ApiResponseSuccess({ message: 'Room availability updated successfully' })
-  updateAvailability(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body('isAvailable', ParseBoolPipe) isAvailable: boolean,
-  ) {
-    return this.roomService.updateAvailability(id, isAvailable);
-  }
+  // @Patch(':id/availability')
+  // @ApiBearerAuth()
+  // @ApiOperation({ summary: 'Update room availability' })
+  // @ApiResponseSuccess({ message: 'Room availability updated successfully' })
+  // updateAvailability(
+  //   @Param('id', ParseUUIDPipe) id: string,
+  //   @Body('isAvailable', ParseBoolPipe) isAvailable: boolean,
+  // ) {
+  //   return this.roomService.updateAvailability(id, isAvailable);
+  // }
 
   @Delete(':id')
   @ApiBearerAuth()
