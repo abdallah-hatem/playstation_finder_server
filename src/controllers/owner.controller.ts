@@ -38,13 +38,13 @@ export class OwnerController {
   //   return this.ownerService.findAll();
   // }
 
-  @Get(':id')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get owner by ID' })
-  @ApiResponseSuccess({ message: 'Owner retrieved successfully' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.ownerService.findOne(id);
-  }
+  // @Get(':id')
+  // @ApiBearerAuth()
+  // @ApiOperation({ summary: 'Get owner by ID' })
+  // @ApiResponseSuccess({ message: 'Owner retrieved successfully' })
+  // findOne(@Param('id', ParseUUIDPipe) id: string) {
+  //   return this.ownerService.findOne(id);
+  // }
 
   // @Get(':id/shops')
   // @ApiOperation({ summary: 'Get owner with their shops' })
