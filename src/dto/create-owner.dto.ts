@@ -1,5 +1,5 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsOptional } from 'class-validator';
+import { ApiProperty, PartialType, OmitType } from '@nestjs/swagger';
 
 export class CreateOwnerDto {
   @ApiProperty({ description: 'Owner name' })
@@ -22,4 +22,21 @@ export class CreateOwnerDto {
   @IsString()
   @MinLength(8)
   password: string;
+}
+
+export class UpdateOwnerDto extends PartialType(OmitType(CreateOwnerDto, ['password'] as const)) {
+  @ApiProperty({ description: 'Owner name', required: false })
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiProperty({ description: 'Owner phone number', required: false })
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @ApiProperty({ description: 'Owner email address', required: false })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
 } 

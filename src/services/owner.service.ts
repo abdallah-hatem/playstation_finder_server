@@ -2,7 +2,7 @@ import { Injectable, ConflictException, NotFoundException } from '@nestjs/common
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { OwnerRepository } from '../repositories/owner.repository';
-import { CreateOwnerDto } from '../dto/create-owner.dto';
+import { CreateOwnerDto, UpdateOwnerDto } from '../dto/create-owner.dto';
 import { Owner } from '../entities/owner.entity';
 
 @Injectable()
@@ -60,15 +60,26 @@ export class OwnerService {
     return owner;
   }
 
-  async update(id: string, updateData: Partial<CreateOwnerDto>): Promise<Owner> {
+  async update(id: string, updateData: UpdateOwnerDto): Promise<Owner> {
     const owner = await this.ownerRepository.findById(id);
     if (!owner) {
       throw new NotFoundException('Owner not found');
     }
 
-    if (updateData.password) {
-      const saltRounds = this.configService.get<number>('BCRYPT_ROUNDS', 10);
-      updateData.password = await bcrypt.hash(updateData.password, saltRounds);
+    // Check for email uniqueness if email is being updated
+    if (updateData.email && updateData.email !== owner.email) {
+      const existingOwner = await this.ownerRepository.findByEmail(updateData.email);
+      if (existingOwner) {
+        throw new ConflictException('Owner with this email already exists');
+      }
+    }
+
+    // Check for phone uniqueness if phone is being updated
+    if (updateData.phone && updateData.phone !== owner.phone) {
+      const existingOwner = await this.ownerRepository.findByPhone(updateData.phone);
+      if (existingOwner) {
+        throw new ConflictException('Owner with this phone number already exists');
+      }
     }
 
     const updatedOwner = await this.ownerRepository.update(id, updateData);

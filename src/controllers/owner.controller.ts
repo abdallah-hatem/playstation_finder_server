@@ -9,9 +9,9 @@ import {
   UseInterceptors,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { OwnerService } from '../services/owner.service';
-import { CreateOwnerDto } from '../dto/create-owner.dto';
+import { CreateOwnerDto, UpdateOwnerDto } from '../dto/create-owner.dto';
 import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
 import { ApiResponseSuccess } from '../common/decorators/api-response.decorator';
 
@@ -21,12 +21,13 @@ import { ApiResponseSuccess } from '../common/decorators/api-response.decorator'
 export class OwnerController {
   constructor(private readonly ownerService: OwnerService) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Create a new owner' })
-  @ApiResponseSuccess({ message: 'Owner created successfully' })
-  create(@Body() createOwnerDto: CreateOwnerDto) {
-    return this.ownerService.create(createOwnerDto);
-  }
+  // @Post()
+  // @ApiBearerAuth()
+  // @ApiOperation({ summary: 'Create a new owner' })
+  // @ApiResponseSuccess({ message: 'Owner created successfully' })
+  // create(@Body() createOwnerDto: CreateOwnerDto) {
+  //   return this.ownerService.create(createOwnerDto);
+  // }
 
   // @Get()
   // @ApiOperation({ summary: 'Get all owners' })
@@ -36,6 +37,7 @@ export class OwnerController {
   // }
 
   @Get(':id')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get owner by ID' })
   @ApiResponseSuccess({ message: 'Owner retrieved successfully' })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
@@ -50,16 +52,18 @@ export class OwnerController {
   // }
 
   @Patch(':id')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update owner' })
   @ApiResponseSuccess({ message: 'Owner updated successfully' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateOwnerDto: Partial<CreateOwnerDto>,
+    @Body() updateOwnerDto: UpdateOwnerDto,
   ) {
     return this.ownerService.update(id, updateOwnerDto);
   }
 
   @Delete(':id')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete owner' })
   @ApiResponseSuccess({ message: 'Owner deleted successfully' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
