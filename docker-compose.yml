@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: cyber_cafe_db
+    environment:
+      POSTGRES_DB: cyber_cafe_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cyber_cafe_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cyber_cafe_app
+    environment:
+      NODE_ENV: development
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: password123
+      DATABASE_NAME: cyber_cafe_db
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    networks:
+      - cyber_cafe_network
+    command: npm run start:dev
+
+volumes:
+  postgres_data:
+
+networks:
+  cyber_cafe_network:
+    driver: bridge 
