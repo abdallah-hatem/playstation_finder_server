@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import databaseConfig from './config/database.config';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { AuthModule } from './modules/auth.module';
 import { OwnerModule } from './modules/owner.module';
 import { UserModule } from './modules/user.module';
@@ -41,6 +42,10 @@ import { DeviceSeedModule } from './modules/device-seed.module';
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
     },
   ],
 })

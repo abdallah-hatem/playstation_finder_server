@@ -4,6 +4,7 @@ import {
   Body,
   UseInterceptors,
   Get,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from '../services/auth.service';
@@ -59,6 +60,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current owner profile' })
   @ApiResponseSuccess({ message: 'Profile retrieved successfully' })
   getProfile(@CurrentUser() owner: Owner) {
+    if (!owner) {
+      throw new UnauthorizedException('User not authenticated');
+    }
     const { passwordHash, ...profile } = owner;
     return profile;
   }
