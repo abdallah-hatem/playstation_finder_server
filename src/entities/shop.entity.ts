@@ -47,7 +47,7 @@ export class Shop {
   @JoinColumn({ name: 'owner_id' })
   owner: Owner;
 
-  @OneToMany(() => Room, (room) => room.shop)
+  @OneToMany(() => Room, (room) => room.shop, { cascade: true })
   rooms: Room[];
 
   @CreateDateColumn({ name: 'created_at' })

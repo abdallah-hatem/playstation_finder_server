@@ -54,7 +54,7 @@ export class Room {
   @JoinColumn({ name: 'device_id' })
   device: Device;
 
-  @OneToMany(() => Reservation, (reservation) => reservation.room)
+  @OneToMany(() => Reservation, (reservation) => reservation.room, { cascade: true })
   reservations: Reservation[];
 
   @CreateDateColumn({ name: 'created_at' })

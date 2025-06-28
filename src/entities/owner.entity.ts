@@ -35,7 +35,7 @@ export class Owner {
   @Exclude()
   passwordHash: string;
 
-  @OneToMany(() => Shop, (shop) => shop.owner)
+  @OneToMany(() => Shop, (shop) => shop.owner, { cascade: true })
   shops: Shop[];
 
   @CreateDateColumn({ name: 'created_at' })

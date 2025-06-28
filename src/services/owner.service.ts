@@ -1,7 +1,8 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { OwnerRepository } from '../repositories/owner.repository';
+import { ReservationRepository } from '../repositories/reservation.repository';
 import { CreateOwnerDto, UpdateOwnerDto } from '../dto/create-owner.dto';
 import { Owner } from '../entities/owner.entity';
 
@@ -9,6 +10,7 @@ import { Owner } from '../entities/owner.entity';
 export class OwnerService {
   constructor(
     private readonly ownerRepository: OwnerRepository,
+    private readonly reservationRepository: ReservationRepository,
     private readonly configService: ConfigService,
   ) {}
 
@@ -92,6 +94,17 @@ export class OwnerService {
       throw new NotFoundException('Owner not found');
     }
 
+    // Check for future reservations across all owner's shops
+    const futureReservations = await this.reservationRepository.findFutureReservationsByOwnerId(id);
+    
+    if (futureReservations.length > 0) {
+      throw new BadRequestException(
+        `Cannot delete account. You have ${futureReservations.length} future reservation(s). ` +
+        `Please cancel all future reservations before deleting your account or contact support.`
+      );
+    }
+
+    // If no future reservations, proceed with deletion (cascade will handle shops, rooms, and past reservations)
     return await this.ownerRepository.delete(id);
   }
 } 

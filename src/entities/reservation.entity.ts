@@ -45,7 +45,7 @@ export class Reservation {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @OneToMany(() => ReservationSlot, (slot) => slot.reservation)
+  @OneToMany(() => ReservationSlot, (slot) => slot.reservation, { cascade: true })
   slots: ReservationSlot[];
 
   @CreateDateColumn({ name: 'created_at' })
