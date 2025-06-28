@@ -30,6 +30,17 @@ async function bootstrap() {
     .addTag('devices', 'Device list endpoint')
     .addTag('rooms', 'Room management endpoints')
     .addTag('reservations', 'Reservation management endpoints')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth', // This name here is important for matching up with @ApiBearerAuth() in your controllers
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

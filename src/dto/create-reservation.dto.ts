@@ -8,11 +8,6 @@ export class CreateReservationDto {
   @IsUUID()
   roomId: string;
 
-  @ApiProperty({ description: 'User ID' })
-  @IsNotEmpty()
-  @IsUUID()
-  userId: string;
-
   @ApiProperty({ description: 'Reservation date' })
   @IsDateString()
   date: string;

@@ -9,12 +9,13 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from '../services/auth.service';
 import { LoginOwnerDto } from '../dto/login-owner.dto';
+import { LoginUserDto } from '../dto/login-user.dto';
 import { RegisterOwnerDto } from '../dto/register-owner.dto';
 import { RegisterUserDto } from '../dto/register-user.dto';
 import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
 import { ApiResponseSuccess } from '../common/decorators/api-response.decorator';
 import { Public } from '../common/decorators/public.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CurrentOwner } from '../common/decorators/current-user.decorator';
 import { Owner } from '../entities/owner.entity';
 
 @ApiTags('auth')
@@ -31,11 +32,19 @@ export class AuthController {
     return this.authService.login(loginOwnerDto);
   }
 
-  @Post('register/owner')
+  @Post('login/user')
+  @Public()
+  @ApiOperation({ summary: 'User login' })
+  @ApiResponseSuccess({ message: 'User login successful' })
+  loginUser(@Body() loginUserDto: LoginUserDto) {
+    return this.authService.loginUser(loginUserDto.email, loginUserDto.password);
+  }
+
+  @Post('register')
   @Public()
   @ApiOperation({ summary: 'Register new owner' })
   @ApiResponseSuccess({ message: 'Owner registered successfully' })
-  registerOwner(@Body() registerOwnerDto: RegisterOwnerDto) {
+  register(@Body() registerOwnerDto: RegisterOwnerDto) {
     return this.authService.registerOwner(registerOwnerDto);
   }
 
@@ -48,18 +57,18 @@ export class AuthController {
   }
 
   @Post('refresh')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponseSuccess({ message: 'Token refreshed successfully' })
-  refresh(@CurrentUser() owner: Owner) {
+  refresh(@CurrentOwner() owner: Owner) {
     return this.authService.refreshToken(owner.id);
   }
 
   @Get('profile')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get current owner profile' })
   @ApiResponseSuccess({ message: 'Profile retrieved successfully' })
-  getProfile(@CurrentUser() owner: Owner) {
+  getProfile(@CurrentOwner() owner: Owner) {
     if (!owner) {
       throw new UnauthorizedException('User not authenticated');
     }

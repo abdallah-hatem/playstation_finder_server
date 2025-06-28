@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthService, JwtPayload } from '../services/auth.service';
 import { Owner } from '../entities/owner.entity';
+import { User } from '../entities/user.entity';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -18,9 +19,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload): Promise<Owner> {
+  async validate(payload: JwtPayload): Promise<Owner | User> {
     try {
-      return await this.authService.validateOwner(payload);
+      if (payload.type === 'owner') {
+        return await this.authService.validateOwner(payload);
+      } else if (payload.type === 'user') {
+        return await this.authService.validateUser(payload);
+      } else {
+        throw new UnauthorizedException('Invalid token type');
+      }
     } catch (error) {
       throw new UnauthorizedException('Invalid token');
     }

@@ -19,8 +19,8 @@ export class ReservationService {
     private readonly reservationSlotRepository: Repository<ReservationSlot>,
   ) {}
 
-  async create(createReservationDto: CreateReservationDto): Promise<Reservation> {
-    const { roomId, userId, date, type, timeSlots } = createReservationDto;
+  async create(createReservationDto: CreateReservationDto, userId: string): Promise<Reservation> {
+    const { roomId, date, type, timeSlots } = createReservationDto;
 
     // Validate room exists and is available
     const room = await this.roomRepository.findById(roomId);

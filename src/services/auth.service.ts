@@ -11,8 +11,9 @@ import { Owner } from '../entities/owner.entity';
 import { User } from '../entities/user.entity';
 
 export interface JwtPayload {
-  sub: string; // owner ID
+  sub: string; // user or owner ID
   email: string;
+  type: 'user' | 'owner'; // specify the type of entity
   iat?: number;
   exp?: number;
 }
@@ -55,6 +56,7 @@ export class AuthService {
     const payload: JwtPayload = {
       sub: owner.id,
       email: owner.email,
+      type: 'owner',
     };
 
     const access_token = this.jwtService.sign(payload);
@@ -76,6 +78,45 @@ export class AuthService {
     return owner;
   }
 
+  async validateUser(payload: JwtPayload): Promise<User> {
+    const user = await this.userRepository.findById(payload.sub);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    return user;
+  }
+
+  async loginUser(email: string, password: string): Promise<UserAuthResponse> {
+    // Find user by email
+    const user = await this.userRepository.findByEmail(email);
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Generate JWT token
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      type: 'user',
+    };
+
+    const access_token = this.jwtService.sign(payload);
+
+    // Remove password hash from response
+    const { passwordHash, ...userWithoutPassword } = user;
+
+    return {
+      access_token,
+      user: userWithoutPassword,
+    };
+  }
+
   async refreshToken(ownerId: string): Promise<{ access_token: string }> {
     const owner = await this.ownerRepository.findById(ownerId);
     if (!owner) {
@@ -85,6 +126,7 @@ export class AuthService {
     const payload: JwtPayload = {
       sub: owner.id,
       email: owner.email,
+      type: 'owner',
     };
 
     const access_token = this.jwtService.sign(payload);
@@ -115,6 +157,7 @@ export class AuthService {
     const payload: JwtPayload = {
       sub: owner.id,
       email: owner.email,
+      type: 'owner',
     };
 
     const access_token = this.jwtService.sign(payload);
@@ -151,6 +194,7 @@ export class AuthService {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
+      type: 'user',
     };
 
     const access_token = this.jwtService.sign(payload);

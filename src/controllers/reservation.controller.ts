@@ -8,24 +8,33 @@ import {
   ParseUUIDPipe,
   Param,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { ReservationService } from '../services/reservation.service';
 import { CreateReservationDto } from '../dto/create-reservation.dto';
 import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
 import { ApiResponseSuccess } from '../common/decorators/api-response.decorator';
+import { CurrentAppUser } from '../common/decorators/current-user.decorator';
+import { User } from '../entities/user.entity';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @ApiTags('reservations')
 @Controller('reservations')
 @UseInterceptors(ResponseInterceptor)
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth('JWT-auth')
 export class ReservationController {
   constructor(private readonly reservationService: ReservationService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new reservation' })
   @ApiResponseSuccess({ message: 'Reservation created successfully' })
-  create(@Body() createReservationDto: CreateReservationDto) {
-    return this.reservationService.create(createReservationDto);
+  create(
+    @Body() createReservationDto: CreateReservationDto,
+    @CurrentAppUser() user: User,
+  ) {
+    return this.reservationService.create(createReservationDto, user.id);
   }
 
   @Get()
@@ -52,6 +61,13 @@ export class ReservationController {
   @ApiResponseSuccess({ message: 'User reservations retrieved successfully' })
   findByUser(@Param('userId', ParseUUIDPipe) userId: string) {
     return this.reservationService.findByUser(userId);
+  }
+
+  @Get('my-reservations')
+  @ApiOperation({ summary: 'Get current user reservations' })
+  @ApiResponseSuccess({ message: 'My reservations retrieved successfully' })
+  findMyReservations(@CurrentAppUser() user: User) {
+    return this.reservationService.findByUser(user.id);
   }
 
   @Get('room/:roomId')

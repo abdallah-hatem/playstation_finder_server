@@ -14,7 +14,7 @@ import { OwnerService } from '../services/owner.service';
 import { CreateOwnerDto, UpdateOwnerDto } from '../dto/create-owner.dto';
 import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
 import { ApiResponseSuccess } from '../common/decorators/api-response.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CurrentOwner } from '../common/decorators/current-user.decorator';
 import { Owner } from '../entities/owner.entity';
 
 @ApiTags('owners')
@@ -54,21 +54,21 @@ export class OwnerController {
   // }
 
   @Patch('me')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update current owner profile' })
   @ApiResponseSuccess({ message: 'Owner profile updated successfully' })
   updateMe(
-    @CurrentUser() currentOwner: Owner,
+    @CurrentOwner() currentOwner: Owner,
     @Body() updateOwnerDto: UpdateOwnerDto,
   ) {
     return this.ownerService.update(currentOwner.id, updateOwnerDto);
   }
 
   @Delete('me')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Delete current owner account' })
   @ApiResponseSuccess({ message: 'Owner account deleted successfully' })
-  deleteMe(@CurrentUser() currentOwner: Owner) {
+  deleteMe(@CurrentOwner() currentOwner: Owner) {
     return this.ownerService.remove(currentOwner.id);
   }
 } 

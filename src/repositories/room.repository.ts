@@ -13,11 +13,51 @@ export class RoomRepository extends BaseRepository<Room> {
     super(roomRepository);
   }
 
+  async findById(id: string): Promise<Room | null> {
+    // Get room with future reservations
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return await this.roomRepository
+      .createQueryBuilder('room')
+      .leftJoinAndSelect('room.device', 'device')
+      .leftJoinAndSelect('room.shop', 'shop')
+      .leftJoinAndSelect('room.reservations', 'reservations', 'reservations.date >= :today', { today })
+      .leftJoinAndSelect('reservations.slots', 'slots')
+      .where('room.id = :id', { id })
+      .orderBy('reservations.date', 'ASC')
+      .addOrderBy('slots.timeSlot', 'ASC')
+      .getOne();
+  }
+
   async findByShopId(shopId: string): Promise<Room[]> {
-    return await this.roomRepository.find({
-      where: { shopId },
-      relations: ['device'],
-    });
+    // Get rooms with future reservations (from today onwards)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return await this.roomRepository
+      .createQueryBuilder('room')
+      .leftJoinAndSelect('room.device', 'device')
+      .leftJoinAndSelect('room.reservations', 'reservations', 'reservations.date >= :today', { today })
+      .leftJoinAndSelect('reservations.slots', 'slots')
+      .where('room.shopId = :shopId', { shopId })
+      .orderBy('room.name', 'ASC')
+      .addOrderBy('reservations.date', 'ASC')
+      .addOrderBy('slots.timeSlot', 'ASC')
+      .getMany();
+  }
+
+  async findByShopIdWithDateRange(shopId: string, startDate: Date, endDate: Date): Promise<Room[]> {
+    return await this.roomRepository
+      .createQueryBuilder('room')
+      .leftJoinAndSelect('room.device', 'device')
+      .leftJoinAndSelect('room.reservations', 'reservations', 'reservations.date BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .leftJoinAndSelect('reservations.slots', 'slots')
+      .where('room.shopId = :shopId', { shopId })
+      .orderBy('room.name', 'ASC')
+      .addOrderBy('reservations.date', 'ASC')
+      .addOrderBy('slots.timeSlot', 'ASC')
+      .getMany();
   }
 
   async findAvailableRooms(shopId?: string): Promise<Room[]> {

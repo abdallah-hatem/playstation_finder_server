@@ -11,11 +11,12 @@ import { Device } from '../entities/device.entity';
 import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
 import { ApiResponseSuccess } from '../common/decorators/api-response.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { OwnerOnlyGuard } from '../auth/owner-only.guard';
 
 @ApiTags('devices')
 @Controller('devices')
 @UseInterceptors(ResponseInterceptor)
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, OwnerOnlyGuard)
 export class DeviceController {
   constructor(
     @InjectRepository(Device)
@@ -23,7 +24,7 @@ export class DeviceController {
   ) {}
 
   @Get()
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get all devices (owner only)' })
   @ApiResponseSuccess({ message: 'Devices retrieved successfully' })
   async findAll() {

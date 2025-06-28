@@ -18,30 +18,32 @@ import { CreateShopDto } from '../dto/create-shop.dto';
 import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
 import { ApiResponseSuccess } from '../common/decorators/api-response.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { OwnerOnlyGuard } from '../auth/owner-only.guard';
+import { CurrentOwner } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { Owner } from '../entities/owner.entity';
 
 @ApiTags('shops')
 @Controller('shops')
 @UseInterceptors(ResponseInterceptor)
-@UseGuards(JwtAuthGuard)
 export class ShopController {
   constructor(private readonly shopService: ShopService) {}
 
   @Post()
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a new shop' })
+  @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Create a new shop (owner only)' })
   @ApiResponseSuccess({ message: 'Shop created successfully' })
-  create(@Body() createShopDto: CreateShopDto, @CurrentUser() owner: Owner) {
+  create(@Body() createShopDto: CreateShopDto, @CurrentOwner() owner: Owner) {
     return this.shopService.create(createShopDto, owner.id);
   }
 
   @Get()
-  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get shops for authenticated owner' })
   @ApiResponseSuccess({ message: 'Owner shops retrieved successfully' })
-  findMyShops(@CurrentUser() owner: Owner) {
+  findMyShops(@CurrentOwner() owner: Owner) {
     return this.shopService.findByOwner(owner.id);
   }
 
@@ -92,22 +94,24 @@ export class ShopController {
   // }
 
   @Patch(':id')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update shop' })
+  @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update shop (owner only)' })
   @ApiResponseSuccess({ message: 'Shop updated successfully' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateShopDto: Partial<CreateShopDto>,
-    @CurrentUser() owner: Owner,
+    @CurrentOwner() owner: Owner,
   ) {
     return this.shopService.update(id, updateShopDto, owner.id);
   }
 
   @Delete(':id')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete shop' })
+  @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Delete shop (owner only)' })
   @ApiResponseSuccess({ message: 'Shop deleted successfully' })
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() owner: Owner) {
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentOwner() owner: Owner) {
     return this.shopService.remove(id, owner.id);
   }
 } 
