@@ -98,15 +98,16 @@ export class ShopController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateShopDto: Partial<CreateShopDto>,
+    @CurrentUser() owner: Owner,
   ) {
-    return this.shopService.update(id, updateShopDto);
+    return this.shopService.update(id, updateShopDto, owner.id);
   }
 
   @Delete(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete shop' })
   @ApiResponseSuccess({ message: 'Shop deleted successfully' })
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.shopService.remove(id);
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() owner: Owner) {
+    return this.shopService.remove(id, owner.id);
   }
 } 

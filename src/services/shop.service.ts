@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { ShopRepository } from '../repositories/shop.repository';
 import { OwnerRepository } from '../repositories/owner.repository';
 import { CreateShopDto } from '../dto/create-shop.dto';
@@ -28,7 +28,10 @@ export class ShopService {
   }
 
   async findOne(id: string): Promise<Shop> {
-    const shop = await this.shopRepository.findById(id);
+    const shop = await this.shopRepository.findOne({
+      where: { id },
+      relations: ['owner'],
+    });
     if (!shop) {
       throw new NotFoundException('Shop not found');
     }
@@ -55,20 +58,30 @@ export class ShopService {
     return await this.shopRepository.findNearby(numLat, numLong, numRadius);
   }
 
-  async update(id: string, updateData: Partial<CreateShopDto>): Promise<Shop> {
+  async update(id: string, updateData: Partial<CreateShopDto>, ownerId: string): Promise<Shop> {
     const shop = await this.shopRepository.findById(id);
     if (!shop) {
       throw new NotFoundException('Shop not found');
+    }
+
+    // Check if the current owner owns this shop
+    if (shop.ownerId !== ownerId) {
+      throw new ForbiddenException('You can only update your own shops');
     }
 
     const updatedShop = await this.shopRepository.update(id, updateData);
     return updatedShop!;
   }
 
-  async remove(id: string): Promise<boolean> {
+  async remove(id: string, ownerId: string): Promise<boolean> {
     const shop = await this.shopRepository.findById(id);
     if (!shop) {
       throw new NotFoundException('Shop not found');
+    }
+
+    // Check if the current owner owns this shop
+    if (shop.ownerId !== ownerId) {
+      throw new ForbiddenException('You can only delete your own shops');
     }
 
     return await this.shopRepository.delete(id);

@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { Exclude } from 'class-transformer';
 import { Reservation } from './reservation.entity';
 
 @Entity('users')
@@ -31,6 +32,7 @@ export class User {
 
   @Column({ name: 'password_hash' })
   @IsNotEmpty()
+  @Exclude()
   passwordHash: string;
 
   @OneToMany(() => Reservation, (reservation) => reservation.user)
