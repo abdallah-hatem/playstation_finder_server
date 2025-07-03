@@ -21,7 +21,10 @@ export class ShopService {
     return shop;
   }
 
-  async findAll() {
+  async findAll(deviceId?: string, deviceName?: string) {
+    if (deviceId || deviceName) {
+      return await this.shopRepository.findAllWithFilters(deviceId, deviceName);
+    }
     return await this.shopRepository.findAll({
       relations: ['owner'],
     });
@@ -85,5 +88,13 @@ export class ShopService {
     }
 
     return await this.shopRepository.delete(id);
+  }
+
+  async findByDevice(deviceId: string): Promise<Shop[]> {
+    return await this.shopRepository.findByDeviceId(deviceId);
+  }
+
+  async findByDeviceName(deviceName: string): Promise<Shop[]> {
+    return await this.shopRepository.findByDeviceName(deviceName);
   }
 } 

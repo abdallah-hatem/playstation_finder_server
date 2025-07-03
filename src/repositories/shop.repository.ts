@@ -34,4 +34,43 @@ export class ShopRepository extends BaseRepository<Shop> {
       )
       .getMany();
   }
+
+  async findByDeviceId(deviceId: string): Promise<Shop[]> {
+    return await this.shopRepository
+      .createQueryBuilder('shop')
+      .leftJoinAndSelect('shop.owner', 'owner')
+      .leftJoinAndSelect('shop.rooms', 'rooms')
+      .leftJoinAndSelect('rooms.device', 'device')
+      .where('rooms.deviceId = :deviceId', { deviceId })
+      .getMany();
+  }
+
+  async findByDeviceName(deviceName: string): Promise<Shop[]> {
+    return await this.shopRepository
+      .createQueryBuilder('shop')
+      .leftJoinAndSelect('shop.owner', 'owner')
+      .leftJoinAndSelect('shop.rooms', 'rooms')
+      .leftJoinAndSelect('rooms.device', 'device')
+      .where('LOWER(device.name) LIKE LOWER(:deviceName)', { deviceName: `%${deviceName}%` })
+      .getMany();
+  }
+
+  async findAllWithFilters(deviceId?: string, deviceName?: string): Promise<Shop[]> {
+    const queryBuilder = this.shopRepository
+      .createQueryBuilder('shop')
+      .leftJoinAndSelect('shop.owner', 'owner')
+      .leftJoinAndSelect('shop.rooms', 'rooms')
+      .leftJoinAndSelect('rooms.device', 'device');
+
+    if (deviceId) {
+      queryBuilder.where('rooms.deviceId = :deviceId', { deviceId });
+    }
+
+    if (deviceName) {
+      const condition = deviceId ? 'andWhere' : 'where';
+      queryBuilder[condition]('LOWER(device.name) LIKE LOWER(:deviceName)', { deviceName: `%${deviceName}%` });
+    }
+
+    return await queryBuilder.getMany();
+  }
 } 

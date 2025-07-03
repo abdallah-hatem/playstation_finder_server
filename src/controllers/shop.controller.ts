@@ -50,10 +50,16 @@ export class ShopController {
   @Get('all')
   @Public()
   @ApiOperation({ summary: 'Get all shops (public)' })
+  @ApiQuery({ name: 'deviceId', description: 'Filter by device ID', required: false })
+  @ApiQuery({ name: 'device', description: 'Filter by device name (case-insensitive)', required: false })
   @ApiResponseSuccess({ message: 'All shops retrieved successfully' })
-  findAll() {
-    return this.shopService.findAll();
+  findAll(
+    @Query('deviceId') deviceId?: string,
+    @Query('device') device?: string,
+  ) {
+    return this.shopService.findAll(deviceId, device);
   }
+
 
   @Get('nearby')
   @Public()

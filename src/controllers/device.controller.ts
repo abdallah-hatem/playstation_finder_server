@@ -16,7 +16,7 @@ import { OwnerOnlyGuard } from '../auth/owner-only.guard';
 @ApiTags('devices')
 @Controller('devices')
 @UseInterceptors(ResponseInterceptor)
-@UseGuards(JwtAuthGuard, OwnerOnlyGuard)
+@UseGuards(JwtAuthGuard)
 export class DeviceController {
   constructor(
     @InjectRepository(Device)
