@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ReservationRepository } from '../repositories/reservation.repository';
 import { RoomRepository } from '../repositories/room.repository';
 import { UserRepository } from '../repositories/user.repository';
@@ -18,6 +18,50 @@ export class ReservationService {
     @InjectRepository(ReservationSlot)
     private readonly reservationSlotRepository: Repository<ReservationSlot>,
   ) {}
+
+  // Helper method to verify if an owner owns a reservation
+  private async verifyOwnerOwnsReservation(reservationId: string, ownerId: string): Promise<void> {
+    const reservation = await this.reservationRepository.findById(reservationId);
+    if (!reservation) {
+      throw new NotFoundException('Reservation not found');
+    }
+
+    const room = await this.roomRepository.findById(reservation.roomId);
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+
+    // Check if the room belongs to one of the owner's shops
+    const ownerReservations = await this.reservationRepository.findAllReservationsByOwnerId(ownerId);
+    const ownerReservationIds = ownerReservations.map(r => r.id);
+    
+    if (!ownerReservationIds.includes(reservationId)) {
+      throw new ForbiddenException('You can only access reservations for your own rooms');
+    }
+  }
+
+  // Helper method to verify if an owner owns a room
+  private async verifyOwnerOwnsRoom(roomId: string, ownerId: string): Promise<void> {
+    const room = await this.roomRepository.findById(roomId);
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+
+    // The findById method already includes shop relationship
+    if (!room.shop || room.shop.ownerId !== ownerId) {
+      throw new ForbiddenException('You can only access rooms from your own shops');
+    }
+  }
+
+  // Helper method to verify if an owner owns a shop
+  private async verifyOwnerOwnsShop(shopId: string, ownerId: string): Promise<void> {
+    const ownerShops = await this.reservationRepository.findAllReservationsByOwnerId(ownerId);
+    const ownerShopIds = [...new Set(ownerShops.map(r => r.room.shop.id))];
+    
+    if (!ownerShopIds.includes(shopId)) {
+      throw new ForbiddenException('You can only access your own shops');
+    }
+  }
 
   async create(createReservationDto: CreateReservationDto, userId: string): Promise<Reservation> {
     const { roomId, date, type, timeSlots } = createReservationDto;
@@ -117,6 +161,11 @@ export class ReservationService {
     return await this.reservationRepository.findByRoomId(roomId);
   }
 
+  async findByRoomForOwner(roomId: string, ownerId: string): Promise<Reservation[]> {
+    await this.verifyOwnerOwnsRoom(roomId, ownerId);
+    return await this.reservationRepository.findByRoomId(roomId);
+  }
+
   async findByDateRange(startDate: string, endDate: string): Promise<Reservation[]> {
     return await this.reservationRepository.findByDateRange(
       new Date(startDate),
@@ -132,12 +181,31 @@ export class ReservationService {
     return await this.reservationRepository.findReservationsByShopId(shopId);
   }
 
+  async findByShopForOwner(shopId: string, ownerId: string): Promise<Reservation[]> {
+    await this.verifyOwnerOwnsShop(shopId, ownerId);
+    return await this.reservationRepository.findReservationsByShopId(shopId);
+  }
+
+  async findOneForOwner(id: string, ownerId: string): Promise<Reservation> {
+    await this.verifyOwnerOwnsReservation(id, ownerId);
+    const reservation = await this.reservationRepository.findById(id);
+    if (!reservation) {
+      throw new NotFoundException('Reservation not found');
+    }
+    return reservation;
+  }
+
   async remove(id: string): Promise<boolean> {
     const reservation = await this.reservationRepository.findById(id);
     if (!reservation) {
       throw new NotFoundException('Reservation not found');
     }
 
+    return await this.reservationRepository.delete(id);
+  }
+
+  async removeForOwner(id: string, ownerId: string): Promise<boolean> {
+    await this.verifyOwnerOwnsReservation(id, ownerId);
     return await this.reservationRepository.delete(id);
   }
 } 
