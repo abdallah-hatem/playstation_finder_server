@@ -15,7 +15,7 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
 import { ApiResponseSuccess } from '../common/decorators/api-response.decorator';
 
-@ApiTags('users')
+// @ApiTags('users')
 @Controller('users')
 @UseInterceptors(ResponseInterceptor)
 export class UserController {
@@ -42,12 +42,12 @@ export class UserController {
   //   return this.userService.findOne(id);
   // }
 
-  @Get(':id/reservations')
-  @ApiOperation({ summary: 'Get user with their reservations' })
-  @ApiResponseSuccess({ message: 'User with reservations retrieved successfully' })
-  findWithReservations(@Param('id', ParseUUIDPipe) id: string) {
-    return this.userService.findWithReservations(id);
-  }
+  // @Get(':id/reservations')
+  // @ApiOperation({ summary: 'Get user with their reservations' })
+  // @ApiResponseSuccess({ message: 'User with reservations retrieved successfully' })
+  // findWithReservations(@Param('id', ParseUUIDPipe) id: string) {
+  //   return this.userService.findWithReservations(id);
+  // }
 
   // @Patch(':id')
   // @ApiOperation({ summary: 'Update user' })
