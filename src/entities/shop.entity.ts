@@ -8,7 +8,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString, IsArray, IsOptional } from 'class-validator';
 import { Owner } from './owner.entity';
 import { Room } from './room.entity';
 
@@ -42,6 +42,16 @@ export class Shop {
   @IsNotEmpty()
   @IsString()
   phone: string;
+
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsString()
+  image?: string;
+
+  @Column({ type: 'json', nullable: true })
+  @IsOptional()
+  @IsArray()
+  images?: string[];
 
   @ManyToOne(() => Owner, (owner) => owner.shops)
   @JoinColumn({ name: 'owner_id' })
