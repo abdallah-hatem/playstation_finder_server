@@ -68,4 +68,31 @@ export class ReservationRepository extends BaseRepository<Reservation> {
       .andWhere('reservation.date >= :today', { today })
       .getMany();
   }
+
+  async findAllReservationsByOwnerId(ownerId: string): Promise<Reservation[]> {
+    return await this.reservationRepository
+      .createQueryBuilder('reservation')
+      .leftJoinAndSelect('reservation.room', 'room')
+      .leftJoinAndSelect('room.shop', 'shop')
+      .leftJoinAndSelect('reservation.user', 'user')
+      .leftJoinAndSelect('reservation.slots', 'slots')
+      .where('shop.ownerId = :ownerId', { ownerId })
+      .orderBy('shop.name', 'ASC')
+      .addOrderBy('room.name', 'ASC')
+      .addOrderBy('reservation.date', 'DESC')
+      .getMany();
+  }
+
+  async findReservationsByShopId(shopId: string): Promise<Reservation[]> {
+    return await this.reservationRepository
+      .createQueryBuilder('reservation')
+      .leftJoinAndSelect('reservation.room', 'room')
+      .leftJoinAndSelect('room.shop', 'shop')
+      .leftJoinAndSelect('reservation.user', 'user')
+      .leftJoinAndSelect('reservation.slots', 'slots')
+      .where('room.shopId = :shopId', { shopId })
+      .orderBy('room.name', 'ASC')
+      .addOrderBy('reservation.date', 'DESC')
+      .getMany();
+  }
 } 

@@ -124,6 +124,14 @@ export class ReservationService {
     );
   }
 
+  async findByOwner(ownerId: string): Promise<Reservation[]> {
+    return await this.reservationRepository.findAllReservationsByOwnerId(ownerId);
+  }
+
+  async findByShop(shopId: string): Promise<Reservation[]> {
+    return await this.reservationRepository.findReservationsByShopId(shopId);
+  }
+
   async remove(id: string): Promise<boolean> {
     const reservation = await this.reservationRepository.findById(id);
     if (!reservation) {
