@@ -85,12 +85,12 @@ export class ReservationController {
     return this.reservationService.findByRoom(roomId);
   }
 
-  @Get('owner/:ownerId')
-  @ApiOperation({ summary: 'Get all reservations for an owner' })
-  @ApiResponseSuccess({ message: 'Owner reservations retrieved successfully' })
-  findByOwner(@Param('ownerId', ParseUUIDPipe) ownerId: string) {
-    return this.reservationService.findByOwner(ownerId);
-  }
+  // @Get('owner/:ownerId')
+  // @ApiOperation({ summary: 'Get all reservations for an owner' })
+  // @ApiResponseSuccess({ message: 'Owner reservations retrieved successfully' })
+  // findByOwner(@Param('ownerId', ParseUUIDPipe) ownerId: string) {
+  //   return this.reservationService.findByOwner(ownerId);
+  // }
 
   @Get('shop/:shopId')
   @ApiOperation({ summary: 'Get reservations by shop' })
