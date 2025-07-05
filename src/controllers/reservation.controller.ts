@@ -46,17 +46,17 @@ export class ReservationController {
   //   return this.reservationService.findAll();
   // }
 
-  @Get('date-range')
-  @ApiOperation({ summary: 'Get reservations by date range' })
-  @ApiQuery({ name: 'startDate', description: 'Start date (YYYY-MM-DD)' })
-  @ApiQuery({ name: 'endDate', description: 'End date (YYYY-MM-DD)' })
-  @ApiResponseSuccess({ message: 'Reservations retrieved successfully' })
-  findByDateRange(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
-  ) {
-    return this.reservationService.findByDateRange(startDate, endDate);
-  }
+  // @Get('date-range')
+  // @ApiOperation({ summary: 'Get reservations by date range' })
+  // @ApiQuery({ name: 'startDate', description: 'Start date (YYYY-MM-DD)' })
+  // @ApiQuery({ name: 'endDate', description: 'End date (YYYY-MM-DD)' })
+  // @ApiResponseSuccess({ message: 'Reservations retrieved successfully' })
+  // findByDateRange(
+  //   @Query('startDate') startDate: string,
+  //   @Query('endDate') endDate: string,
+  // ) {
+  //   return this.reservationService.findByDateRange(startDate, endDate);
+  // }
 
   // @Get('user/:userId')
   // @ApiOperation({ summary: 'Get reservations by user' })
@@ -80,13 +80,13 @@ export class ReservationController {
     return this.reservationService.findByOwner(owner.id);
   }
 
-  @Get('room/:roomId')
-  @UseGuards(OwnerOnlyGuard)
-  @ApiOperation({ summary: 'Get reservations by room (owner only)' })
-  @ApiResponseSuccess({ message: 'Room reservations retrieved successfully' })
-  findByRoom(@Param('roomId', ParseUUIDPipe) roomId: string, @CurrentOwner() owner: Owner) {
-    return this.reservationService.findByRoomForOwner(roomId, owner.id);
-  }
+  // @Get('room/:roomId')
+  // @UseGuards(OwnerOnlyGuard)
+  // @ApiOperation({ summary: 'Get reservations by room (owner only)' })
+  // @ApiResponseSuccess({ message: 'Room reservations retrieved successfully' })
+  // findByRoom(@Param('roomId', ParseUUIDPipe) roomId: string, @CurrentOwner() owner: Owner) {
+  //   return this.reservationService.findByRoomForOwner(roomId, owner.id);
+  // }
 
   // @Get('owner/:ownerId')
   // @ApiOperation({ summary: 'Get all reservations for an owner' })
@@ -95,27 +95,27 @@ export class ReservationController {
   //   return this.reservationService.findByOwner(ownerId);
   // }
 
-  @Get('shop/:shopId')
-  @UseGuards(OwnerOnlyGuard)
-  @ApiOperation({ summary: 'Get reservations by shop (owner only)' })
-  @ApiResponseSuccess({ message: 'Shop reservations retrieved successfully' })
-  findByShop(@Param('shopId', ParseUUIDPipe) shopId: string, @CurrentOwner() owner: Owner) {
-    return this.reservationService.findByShopForOwner(shopId, owner.id);
-  }
+  // @Get('shop/:shopId')
+  // @UseGuards(OwnerOnlyGuard)
+  // @ApiOperation({ summary: 'Get reservations by shop (owner only)' })
+  // @ApiResponseSuccess({ message: 'Shop reservations retrieved successfully' })
+  // findByShop(@Param('shopId', ParseUUIDPipe) shopId: string, @CurrentOwner() owner: Owner) {
+  //   return this.reservationService.findByShopForOwner(shopId, owner.id);
+  // }
 
-  @Get(':id')
-  @UseGuards(OwnerOnlyGuard)
-  @ApiOperation({ summary: 'Get reservation by ID (owner only)' })
-  @ApiResponseSuccess({ message: 'Reservation retrieved successfully' })
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentOwner() owner: Owner) {
-    return this.reservationService.findOneForOwner(id, owner.id);
-  }
+  // @Get(':id')
+  // @UseGuards(OwnerOnlyGuard)
+  // @ApiOperation({ summary: 'Get reservation by ID (owner only)' })
+  // @ApiResponseSuccess({ message: 'Reservation retrieved successfully' })
+  // findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentOwner() owner: Owner) {
+  //   return this.reservationService.findOneForOwner(id, owner.id);
+  // }
 
-  @Delete(':id')
-  @UseGuards(OwnerOnlyGuard)
-  @ApiOperation({ summary: 'Delete reservation (owner only)' })
-  @ApiResponseSuccess({ message: 'Reservation deleted successfully' })
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentOwner() owner: Owner) {
-    return this.reservationService.removeForOwner(id, owner.id);
-  }
+  // @Delete(':id')
+  // @UseGuards(OwnerOnlyGuard)
+  // @ApiOperation({ summary: 'Delete reservation (owner only)' })
+  // @ApiResponseSuccess({ message: 'Reservation deleted successfully' })
+  // remove(@Param('id', ParseUUIDPipe) id: string, @CurrentOwner() owner: Owner) {
+  //   return this.reservationService.removeForOwner(id, owner.id);
+  // }
 } 
