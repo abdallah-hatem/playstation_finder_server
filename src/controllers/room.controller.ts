@@ -94,16 +94,16 @@ export class RoomController {
     return this.roomService.findOneById(id);
   }
 
-  @Get(':id/availability/:date')
-  @Public()
-  @ApiOperation({ summary: 'Get room availability for a specific date' })
-  @ApiResponseSuccess({ message: 'Room availability retrieved successfully' })
-  getAvailability(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('date') date: string,
-  ) {
-    return this.roomService.getAvailableTimeSlots(id, date);
-  }
+  // @Get(':id/availability/:date')
+  // @Public()
+  // @ApiOperation({ summary: 'Get room availability for a specific date' })
+  // @ApiResponseSuccess({ message: 'Room availability retrieved successfully' })
+  // getAvailability(
+  //   @Param('id', ParseUUIDPipe) id: string,
+  //   @Param('date') date: string,
+  // ) {
+  //   return this.roomService.getAvailableTimeSlots(id, date);
+  // }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
