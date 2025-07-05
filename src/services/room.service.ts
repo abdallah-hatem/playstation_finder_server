@@ -72,7 +72,13 @@ export class RoomService {
       return await this.roomRepository.findByShopIdWithDateRange(shopId, start, end);
     }
 
-    return await this.roomRepository.findByShopId(shopId);
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    return await this.roomRepository.findByShopIdWithDateRange(shopId, start, end);
+    // return await this.roomRepository.findByShopId(shopId);
   }
 
   async findAvailable(shopId?: string): Promise<Room[]> {
