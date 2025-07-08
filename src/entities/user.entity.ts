@@ -35,6 +35,9 @@ export class User {
   @Exclude()
   passwordHash: string;
 
+  @Column({ name: 'email_verified', default: false })
+  emailVerified: boolean;
+
   @OneToMany(() => Reservation, (reservation) => reservation.user)
   reservations: Reservation[];
 

@@ -35,6 +35,9 @@ export class Owner {
   @Exclude()
   passwordHash: string;
 
+  @Column({ name: 'email_verified', default: false })
+  emailVerified: boolean;
+
   @OneToMany(() => Shop, (shop) => shop.owner, { cascade: true })
   shops: Shop[];
 

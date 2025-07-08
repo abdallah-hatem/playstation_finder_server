@@ -7,11 +7,13 @@ import { AuthController } from '../controllers/auth.controller';
 import { JwtStrategy } from '../auth/jwt.strategy';
 import { OwnerModule } from './owner.module';
 import { UserModule } from './user.module';
+import { OtpModule } from './otp.module';
 
 @Module({
   imports: [
     OwnerModule,
     UserModule,
+    OtpModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

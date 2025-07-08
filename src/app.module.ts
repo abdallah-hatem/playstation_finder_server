@@ -14,6 +14,7 @@ import { DeviceModule } from './modules/device.module';
 import { RoomModule } from './modules/room.module';
 import { ReservationModule } from './modules/reservation.module';
 import { DeviceSeedModule } from './modules/device-seed.module';
+import { OtpModule } from './modules/otp.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { DeviceSeedModule } from './modules/device-seed.module';
     RoomModule,
     ReservationModule,
     DeviceSeedModule,
+    OtpModule,
   ],
   providers: [
     {

@@ -46,6 +46,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Check if email is verified
+    if (!owner.emailVerified) {
+      throw new UnauthorizedException('Please verify your email before logging in. Check your inbox for the OTP verification email.');
+    }
+
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, owner.passwordHash);
     if (!isPasswordValid) {
@@ -91,6 +96,11 @@ export class AuthService {
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Check if email is verified
+    if (!user.emailVerified) {
+      throw new UnauthorizedException('Please verify your email before logging in. Check your inbox for the OTP verification email.');
     }
 
     // Verify password
