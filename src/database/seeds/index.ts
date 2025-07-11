@@ -105,6 +105,11 @@ async function createShops(owners: Owner[]): Promise<Shop[]> {
 
   for (let i = 0; i < 10; i++) {
     const owner = faker.helpers.arrayElement(owners);
+    
+    // Generate random but realistic opening and closing times
+    const openingHour = faker.number.int({ min: 6, max: 10 }); // 6 AM to 10 AM
+    const closingHour = faker.number.int({ min: 20, max: 23 }); // 8 PM to 11 PM
+    
     const shop = shopRepository.create({
       ownerId: owner.id,
       name: `${faker.company.name()} Gaming Café`,
@@ -112,6 +117,8 @@ async function createShops(owners: Owner[]): Promise<Shop[]> {
       lat: faker.location.latitude().toString(),
       long: faker.location.longitude().toString(),
       phone: faker.phone.number(),
+      openingTime: `${openingHour.toString().padStart(2, '0')}:00`,
+      closingTime: `${closingHour.toString().padStart(2, '0')}:00`,
     });
     shops.push(await shopRepository.save(shop));
   }
@@ -169,10 +176,10 @@ async function createReservations(rooms: Room[], users: User[]): Promise<Reserva
     const savedReservation = await reservationRepository.save(reservation);
     reservations.push(savedReservation);
 
-    // Create time slots for the reservation
+    // Create time slots for the reservation (full day range)
     const slotCount = faker.number.int({ min: 1, max: 4 });
     for (let j = 0; j < slotCount; j++) {
-      const timeSlot = `${faker.number.int({ min: 9, max: 22 })}:${faker.helpers.arrayElement(['00', '30'])}`;
+      const timeSlot = `${faker.number.int({ min: 0, max: 23 })}:${faker.helpers.arrayElement(['00', '30'])}`;
       const slot = reservationSlotRepository.create({
         reservationId: savedReservation.id,
         timeSlot,

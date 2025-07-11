@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { RoomRepository } from '../repositories/room.repository';
 import { ShopRepository } from '../repositories/shop.repository';
+import { TimeSlotRateService } from './time-slot-rate.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Device } from '../entities/device.entity';
@@ -12,9 +13,16 @@ export class RoomService {
   constructor(
     private readonly roomRepository: RoomRepository,
     private readonly shopRepository: ShopRepository,
+    private readonly timeSlotRateService: TimeSlotRateService,
     @InjectRepository(Device)
     private readonly deviceRepository: Repository<Device>,
   ) {}
+
+  // Helper method to parse time strings to minutes for comparison
+  private parseTime(timeStr: string): number {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  }
 
   async create(createRoomDto: CreateRoomDto): Promise<Room> {
     const { shopId, deviceId, ...roomData } = createRoomDto;
@@ -31,11 +39,22 @@ export class RoomService {
       throw new NotFoundException('Device not found');
     }
 
+    // Create the room
     const room = await this.roomRepository.create({
       ...roomData,
       shopId,
       deviceId,
     });
+
+    // Automatically generate time slot rates with the default rates from the room
+    const defaultRates = {
+      singleHourlyRate: room.singleHourlyRate,
+      multiHourlyRate: room.multiHourlyRate,
+      otherHourlyRate: room.otherHourlyRate,
+    };
+
+    // Generate time slots from 00:00 to 23:30 with the default rates
+    await this.timeSlotRateService.generateDefaultTimeSlots(room.id, defaultRates);
 
     return room;
   }
@@ -56,6 +75,21 @@ export class RoomService {
       throw new NotFoundException('Room not found');
     }
     return room;
+  }
+
+  async findOneWithTimeSlotRates(id: string): Promise<Room & { timeSlotRates: any[] }> {
+    const room = await this.roomRepository.findById(id);
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+
+    // Get time slot rates for this room
+    const timeSlotRates = await this.timeSlotRateService.getTimeSlotRatesByRoom(id);
+
+    return {
+      ...room,
+      timeSlotRates,
+    };
   }
 
   async findByShop(shopId: string, startDate?: string, endDate?: string): Promise<Room[]> {
@@ -115,7 +149,47 @@ export class RoomService {
       }
     }
 
+    // Update the room first
     const updatedRoom = await this.roomRepository.update(id, updateData);
+
+    // Check if any of the default rates were updated
+    const ratesChanged = 
+      updateData.singleHourlyRate !== undefined ||
+      updateData.multiHourlyRate !== undefined ||
+      updateData.otherHourlyRate !== undefined;
+
+    if (ratesChanged && updatedRoom) {
+      // Get all existing time slot rates for this room
+      const existingTimeSlots = await this.timeSlotRateService.getTimeSlotRatesByRoom(id);
+
+      if (existingTimeSlots.length > 0) {
+        // Prepare the new default rates (use new values if provided, otherwise keep existing)
+        const newDefaultRates = {
+          singleHourlyRate: updateData.singleHourlyRate !== undefined 
+            ? updateData.singleHourlyRate 
+            : updatedRoom.singleHourlyRate,
+          multiHourlyRate: updateData.multiHourlyRate !== undefined 
+            ? updateData.multiHourlyRate 
+            : updatedRoom.multiHourlyRate,
+          otherHourlyRate: updateData.otherHourlyRate !== undefined 
+            ? updateData.otherHourlyRate 
+            : updatedRoom.otherHourlyRate,
+        };
+
+        // Create batch update data for all existing time slots
+        const batchUpdateData = {
+          roomId: id,
+          timeSlotRates: existingTimeSlots.map(slot => ({
+            timeSlot: slot.timeSlot,
+            ...newDefaultRates,
+          })),
+        };
+
+        // Update all time slot rates with the new default rates
+        await this.timeSlotRateService.batchCreateTimeSlotRates(batchUpdateData);
+      }
+    }
+
     return updatedRoom!;
   }
 
@@ -144,6 +218,12 @@ export class RoomService {
       throw new NotFoundException('Room not found');
     }
 
+    // Get the shop to check operating hours
+    const shop = await this.shopRepository.findById(room.shopId);
+    if (!shop) {
+      throw new NotFoundException('Shop not found');
+    }
+
     // Get reservations for the specific date
     const targetDate = new Date(date);
     const reservedSlots: string[] = [];
@@ -159,17 +239,66 @@ export class RoomService {
       });
     }
 
-    // Generate all possible time slots (example: 9:00 to 22:00 in 30-minute intervals)
+    // Generate all possible time slots (00:00 to 23:30 in 30-minute intervals - full day)
     const allTimeSlots: string[] = [];
-    for (let hour = 9; hour <= 22; hour++) {
+    for (let hour = 0; hour <= 23; hour++) {
       allTimeSlots.push(`${hour.toString().padStart(2, '0')}:00`);
-      if (hour < 22) {
+      if (hour < 23) {
         allTimeSlots.push(`${hour.toString().padStart(2, '0')}:30`);
       }
     }
 
-    // Calculate available slots
-    const availableSlots = allTimeSlots.filter(slot => !reservedSlots.includes(slot));
+    // Filter slots based on shop operating hours
+    const operatingHoursSlots = allTimeSlots.filter(slot => {
+      const slotMinutes = this.parseTime(slot);
+      return slotMinutes >= this.parseTime(shop.openingTime) && slotMinutes < this.parseTime(shop.closingTime);
+    });
+
+    // Calculate available slots (within operating hours and not reserved)
+    const availableSlots = operatingHoursSlots.filter(slot => !reservedSlots.includes(slot));
+
+    return {
+      room: {
+        id: room.id,
+        name: room.name,
+        capacity: room.capacity,
+        device: room.device,
+        singleHourlyRate: room.singleHourlyRate,
+        multiHourlyRate: room.multiHourlyRate,
+        otherHourlyRate: room.otherHourlyRate,
+        isAvailable: room.isAvailable,
+        shop: {
+          id: shop.id,
+          name: shop.name,
+          openingTime: shop.openingTime,
+          closingTime: shop.closingTime,
+        },
+      } as Room,
+      reservedSlots: reservedSlots.sort(),
+      availableSlots: availableSlots.sort(),
+    };
+  }
+
+  async getTimeSlotRatesWithinOperatingHours(roomId: string): Promise<{ room: Room; shop: any; timeSlotRates: any[] }> {
+    const room = await this.roomRepository.findById(roomId);
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+
+    // Get the shop to check operating hours
+    const shop = await this.shopRepository.findById(room.shopId);
+    if (!shop) {
+      throw new NotFoundException('Shop not found');
+    }
+
+    // Get all time slot rates for this room
+    const allTimeSlotRates = await this.timeSlotRateService.getTimeSlotRatesByRoom(roomId);
+
+    // Filter time slot rates based on shop operating hours
+    const operatingHoursRates = allTimeSlotRates.filter(rate => {
+      const slotMinutes = this.parseTime(rate.timeSlot);
+      return slotMinutes >= this.parseTime(shop.openingTime) && slotMinutes < this.parseTime(shop.closingTime);
+    });
 
     return {
       room: {
@@ -182,8 +311,13 @@ export class RoomService {
         otherHourlyRate: room.otherHourlyRate,
         isAvailable: room.isAvailable,
       } as Room,
-      reservedSlots: reservedSlots.sort(),
-      availableSlots: availableSlots.sort(),
+      shop: {
+        id: shop.id,
+        name: shop.name,
+        openingTime: shop.openingTime,
+        closingTime: shop.closingTime,
+      },
+      timeSlotRates: operatingHoursRates.sort((a, b) => a.timeSlot.localeCompare(b.timeSlot)),
     };
   }
 } 

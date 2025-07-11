@@ -43,6 +43,16 @@ export class Shop {
   @IsString()
   phone: string;
 
+  @Column({ name: 'opening_time' })
+  @IsNotEmpty()
+  @IsString()
+  openingTime: string; // Format: "HH:MM" (e.g., "09:00")
+
+  @Column({ name: 'closing_time' })
+  @IsNotEmpty()
+  @IsString()
+  closingTime: string; // Format: "HH:MM" (e.g., "22:00")
+
   @Column({ nullable: true })
   @IsOptional()
   @IsString()

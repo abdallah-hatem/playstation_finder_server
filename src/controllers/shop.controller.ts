@@ -57,6 +57,8 @@ export class ShopController {
         lat: { type: 'string', description: 'Latitude coordinate' },
         long: { type: 'string', description: 'Longitude coordinate' },
         phone: { type: 'string', description: 'Shop phone number' },
+        openingTime: { type: 'string', description: 'Shop opening time in HH:MM format', example: '09:00' },
+        closingTime: { type: 'string', description: 'Shop closing time in HH:MM format', example: '22:00' },
         image: { 
           type: 'string', 
           format: 'binary', 
@@ -172,6 +174,8 @@ export class ShopController {
         lat: { type: 'string', description: 'Latitude coordinate' },
         long: { type: 'string', description: 'Longitude coordinate' },
         phone: { type: 'string', description: 'Shop phone number' },
+        openingTime: { type: 'string', description: 'Shop opening time in HH:MM format', example: '09:00' },
+        closingTime: { type: 'string', description: 'Shop closing time in HH:MM format', example: '22:00' },
         image: { 
           type: 'string', 
           format: 'binary', 

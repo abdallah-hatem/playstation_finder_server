@@ -12,6 +12,7 @@ import { IsNotEmpty, IsString, IsNumber, IsBoolean } from 'class-validator';
 import { Shop } from './shop.entity';
 import { Device } from './device.entity';
 import { Reservation } from './reservation.entity';
+import { TimeSlotRate } from './time-slot-rate.entity';
 
 @Entity('rooms')
 export class Room {
@@ -56,6 +57,9 @@ export class Room {
 
   @OneToMany(() => Reservation, (reservation) => reservation.room, { cascade: true })
   reservations: Reservation[];
+
+  @OneToMany(() => TimeSlotRate, (timeSlotRate) => timeSlotRate.room, { cascade: true })
+  timeSlotRates: TimeSlotRate[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

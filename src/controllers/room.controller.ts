@@ -15,6 +15,7 @@ import {
 import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { RoomService } from '../services/room.service';
 import { CreateRoomDto } from '../dto/create-room.dto';
+import { UpdateRoomRatesDto } from '../dto/update-room-rates.dto';
 import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
 import { ApiResponseSuccess } from '../common/decorators/api-response.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -94,6 +95,26 @@ export class RoomController {
     return this.roomService.findOneById(id);
   }
 
+  @Get(':id/with-rates')
+  @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get room with time slot rates (owner only)' })
+  @ApiResponseSuccess({ message: 'Room with time slot rates retrieved successfully' })
+  findOneWithTimeSlotRates(@Param('id', ParseUUIDPipe) id: string) {
+    return this.roomService.getTimeSlotRatesWithinOperatingHours(id);
+  }
+
+  // @Get(':id/operating-hours-rates')
+  // @Public()
+  // @ApiOperation({ 
+  //   summary: 'Get room with time slot rates filtered by shop operating hours', 
+  //   description: 'Returns only time slot rates that fall within the shop\'s opening and closing times'
+  // })
+  // @ApiResponseSuccess({ message: 'Room with operating hours time slot rates retrieved successfully' })
+  // findTimeSlotRatesWithinOperatingHours(@Param('id', ParseUUIDPipe) id: string) {
+  //   return this.roomService.getTimeSlotRatesWithinOperatingHours(id);
+  // }
+
   // @Get(':id/availability/:date')
   // @Public()
   // @ApiOperation({ summary: 'Get room availability for a specific date' })
@@ -108,7 +129,10 @@ export class RoomController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Update room (owner only)' })
+  @ApiOperation({ 
+    summary: 'Update room (owner only)', 
+    description: 'Updates room details. If default rates (singleHourlyRate, multiHourlyRate, otherHourlyRate) are updated, ALL time slot rates for this room will be automatically updated to match the new default rates.'
+  })
   @ApiResponseSuccess({ message: 'Room updated successfully' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -116,6 +140,7 @@ export class RoomController {
   ) {
     return this.roomService.update(id, updateRoomDto);
   }
+
 
   // @Patch(':id/availability')
   // @ApiBearerAuth()

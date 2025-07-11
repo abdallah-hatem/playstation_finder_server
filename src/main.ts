@@ -41,7 +41,7 @@ async function bootstrap() {
     .setVersion('1.0')
     .addTag('auth', 'Authentication endpoints (login, register)')
     .addTag('owners', 'Owner management endpoints')
-    .addTag('users', 'User management endpoints')
+    // .addTag('users', 'User management endpoints')
     .addTag('shops', 'Shop management endpoints')
     .addTag('devices', 'Device list endpoint')
     .addTag('rooms', 'Room management endpoints')

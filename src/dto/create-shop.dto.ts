@@ -1,6 +1,42 @@
-import { IsNotEmpty, IsString, IsArray, IsOptional, IsUrl, ValidateIf } from 'class-validator';
+import { IsNotEmpty, IsString, IsArray, IsOptional, IsUrl, ValidateIf, Matches, registerDecorator, ValidationOptions, ValidationArguments } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
+
+// Custom validator for shop operating hours
+function ValidateShopHours(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      name: 'validateShopHours',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          const obj = args.object as CreateShopDto;
+          
+          if (!obj.openingTime || !obj.closingTime) {
+            return false;
+          }
+
+          // Parse time strings to minutes for comparison
+          const parseTime = (timeStr: string): number => {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+          };
+
+          const openingMinutes = parseTime(obj.openingTime);
+          const closingMinutes = parseTime(obj.closingTime);
+
+          // Opening time must be before closing time
+          return openingMinutes < closingMinutes;
+        },
+        defaultMessage(args: ValidationArguments) {
+          return 'Opening time must be before closing time';
+        },
+      },
+    });
+  };
+}
 
 export class CreateShopDto {
   // ownerId will be automatically set from JWT token
@@ -29,6 +65,19 @@ export class CreateShopDto {
   @IsNotEmpty()
   @IsString()
   phone: string;
+
+  @ApiProperty({ description: 'Shop opening time in HH:MM format', example: '09:00' })
+  @IsNotEmpty()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'Opening time must be in HH:MM format (e.g., 09:00)' })
+  @ValidateShopHours()
+  openingTime: string;
+
+  @ApiProperty({ description: 'Shop closing time in HH:MM format', example: '22:00' })
+  @IsNotEmpty()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'Closing time must be in HH:MM format (e.g., 22:00)' })
+  closingTime: string;
 
   @ApiPropertyOptional({ description: 'Main shop image URL' })
   @IsOptional()
@@ -83,6 +132,19 @@ export class CreateShopWithImagesDto {
   @IsString()
   phone: string;
 
+  @ApiProperty({ description: 'Shop opening time in HH:MM format', example: '09:00' })
+  @IsNotEmpty()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'Opening time must be in HH:MM format (e.g., 09:00)' })
+  @ValidateShopHours()
+  openingTime: string;
+
+  @ApiProperty({ description: 'Shop closing time in HH:MM format', example: '22:00' })
+  @IsNotEmpty()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'Closing time must be in HH:MM format (e.g., 22:00)' })
+  closingTime: string;
+
   @ApiPropertyOptional({ 
     type: 'string',
     format: 'binary',
@@ -123,6 +185,18 @@ export class UpdateShopWithImagesDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @ApiPropertyOptional({ description: 'Shop opening time in HH:MM format', example: '09:00' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'Opening time must be in HH:MM format (e.g., 09:00)' })
+  openingTime?: string;
+
+  @ApiPropertyOptional({ description: 'Shop closing time in HH:MM format', example: '22:00' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'Closing time must be in HH:MM format (e.g., 22:00)' })
+  closingTime?: string;
 
   @ApiPropertyOptional({ 
     type: 'string',

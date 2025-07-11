@@ -15,6 +15,7 @@ import { RoomModule } from './modules/room.module';
 import { ReservationModule } from './modules/reservation.module';
 import { DeviceSeedModule } from './modules/device-seed.module';
 import { OtpModule } from './modules/otp.module';
+import { TimeSlotRateModule } from './modules/time-slot-rate.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { OtpModule } from './modules/otp.module';
     ReservationModule,
     DeviceSeedModule,
     OtpModule,
+    TimeSlotRateModule,
   ],
   providers: [
     {

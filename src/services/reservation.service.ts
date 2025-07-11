@@ -1,13 +1,14 @@
-import { Injectable, ConflictException, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ReservationRepository } from '../repositories/reservation.repository';
 import { RoomRepository } from '../repositories/room.repository';
 import { UserRepository } from '../repositories/user.repository';
+import { ShopRepository } from '../repositories/shop.repository';
 import { CreateReservationDto } from '../dto/create-reservation.dto';
 import { Reservation } from '../entities/reservation.entity';
 import { ReservationSlot } from '../entities/reservation-slot.entity';
 import { ReservationType } from '../common/enums/reservation-type.enum';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 
 @Injectable()
 export class ReservationService {
@@ -15,6 +16,7 @@ export class ReservationService {
     private readonly reservationRepository: ReservationRepository,
     private readonly roomRepository: RoomRepository,
     private readonly userRepository: UserRepository,
+    private readonly shopRepository: ShopRepository,
     @InjectRepository(ReservationSlot)
     private readonly reservationSlotRepository: Repository<ReservationSlot>,
   ) {}
@@ -63,6 +65,39 @@ export class ReservationService {
     }
   }
 
+  // Helper method to validate time slots against shop operating hours
+  private async validateTimeSlots(roomId: string, timeSlots: string[]): Promise<void> {
+    const room = await this.roomRepository.findById(roomId);
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+
+    const shop = await this.shopRepository.findById(room.shopId);
+    if (!shop) {
+      throw new NotFoundException('Shop not found');
+    }
+
+    // Parse time strings to minutes for comparison
+    const parseTime = (timeStr: string): number => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const openingMinutes = parseTime(shop.openingTime);
+    const closingMinutes = parseTime(shop.closingTime);
+
+    // Validate each time slot
+    for (const timeSlot of timeSlots) {
+      const slotMinutes = parseTime(timeSlot);
+      
+      if (slotMinutes < openingMinutes || slotMinutes >= closingMinutes) {
+        throw new BadRequestException(
+          `Time slot ${timeSlot} is outside shop operating hours (${shop.openingTime} - ${shop.closingTime})`
+        );
+      }
+    }
+  }
+
   async create(createReservationDto: CreateReservationDto, userId: string): Promise<Reservation> {
     const { roomId, date, type, timeSlots } = createReservationDto;
 
@@ -80,6 +115,9 @@ export class ReservationService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
+    // Validate time slots are within shop operating hours
+    await this.validateTimeSlots(roomId, timeSlots);
 
     // Check for conflicting reservations
     const reservationDate = new Date(date);
