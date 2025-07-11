@@ -13,6 +13,7 @@ import { Shop } from './shop.entity';
 import { Device } from './device.entity';
 import { Reservation } from './reservation.entity';
 import { TimeSlotRate } from './time-slot-rate.entity';
+import { RoomDisablePeriod } from './room-disable-period.entity';
 
 @Entity('rooms')
 export class Room {
@@ -60,6 +61,9 @@ export class Room {
 
   @OneToMany(() => TimeSlotRate, (timeSlotRate) => timeSlotRate.room, { cascade: true })
   timeSlotRates: TimeSlotRate[];
+
+  @OneToMany(() => RoomDisablePeriod, (disablePeriod) => disablePeriod.room, { cascade: true })
+  disablePeriods: RoomDisablePeriod[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

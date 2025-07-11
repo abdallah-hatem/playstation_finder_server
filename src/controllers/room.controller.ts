@@ -67,16 +67,14 @@ export class RoomController {
 
   @Get('shop/:shopId')
   @Public()
-  @ApiOperation({ summary: 'Get rooms by shop with reservations' })
-  @ApiQuery({ name: 'startDate', description: 'Start date for reservations (YYYY-MM-DD)', required: false })
-  @ApiQuery({ name: 'endDate', description: 'End date for reservations (YYYY-MM-DD)', required: false })
-  @ApiResponseSuccess({ message: 'Shop rooms with reservations retrieved successfully' })
+  @ApiOperation({ summary: 'Get rooms by shop with time slot rates and availability status for a specific date' })
+  @ApiQuery({ name: 'date', description: 'Date to get room data and check availability (YYYY-MM-DD), defaults to today', required: false })
+  @ApiResponseSuccess({ message: 'Shop rooms with time slot rates and availability retrieved successfully' })
   findByShop(
     @Param('shopId', ParseUUIDPipe) shopId: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query('date') date?: string,
   ) {
-    return this.roomService.findByShop(shopId, startDate, endDate);
+    return this.roomService.findByShopForDate(shopId, date);
   }
 
   // @Get('device/:deviceId')

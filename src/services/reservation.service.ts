@@ -5,6 +5,7 @@ import { ReservationRepository } from '../repositories/reservation.repository';
 import { RoomRepository } from '../repositories/room.repository';
 import { UserRepository } from '../repositories/user.repository';
 import { ShopRepository } from '../repositories/shop.repository';
+import { RoomDisablePeriodService } from './room-disable-period.service';
 import { CreateReservationDto } from '../dto/create-reservation.dto';
 import { Reservation } from '../entities/reservation.entity';
 import { ReservationSlot } from '../entities/reservation-slot.entity';
@@ -17,6 +18,7 @@ export class ReservationService {
     private readonly roomRepository: RoomRepository,
     private readonly userRepository: UserRepository,
     private readonly shopRepository: ShopRepository,
+    private readonly roomDisablePeriodService: RoomDisablePeriodService,
     @InjectRepository(ReservationSlot)
     private readonly reservationSlotRepository: Repository<ReservationSlot>,
   ) {}
@@ -98,6 +100,23 @@ export class ReservationService {
     }
   }
 
+  // Helper method to validate that room is not disabled during the reservation period
+  private async validateRoomNotDisabled(roomId: string, date: Date, timeSlots: string[]): Promise<void> {
+    // For each time slot, check if the room is disabled
+    for (const timeSlot of timeSlots) {
+      const [hours, minutes] = timeSlot.split(':').map(Number);
+      const slotDateTime = new Date(date);
+      slotDateTime.setHours(hours, minutes, 0, 0);
+
+      const isDisabled = await this.roomDisablePeriodService.isRoomDisabledAt(roomId, slotDateTime);
+      if (isDisabled) {
+        throw new BadRequestException(
+          `Room is disabled at time slot ${timeSlot} on ${date.toDateString()}`
+        );
+      }
+    }
+  }
+
   async create(createReservationDto: CreateReservationDto, userId: string): Promise<Reservation> {
     const { roomId, date, type, timeSlots } = createReservationDto;
 
@@ -119,8 +138,11 @@ export class ReservationService {
     // Validate time slots are within shop operating hours
     await this.validateTimeSlots(roomId, timeSlots);
 
-    // Check for conflicting reservations
+    // Check that room is not disabled during the requested time
     const reservationDate = new Date(date);
+    await this.validateRoomNotDisabled(roomId, reservationDate, timeSlots);
+
+    // Check for conflicting reservations
     const conflicts = await this.reservationRepository.findConflictingReservations(
       roomId,
       reservationDate,

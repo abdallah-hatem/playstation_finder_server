@@ -6,4 +6,5 @@ export { Device } from './device.entity';
 export { Room } from './room.entity';
 export { Reservation } from './reservation.entity';
 export { ReservationSlot } from './reservation-slot.entity';
-export { TimeSlotRate } from './time-slot-rate.entity'; 
+export { TimeSlotRate } from './time-slot-rate.entity';
+export { RoomDisablePeriod } from './room-disable-period.entity'; 

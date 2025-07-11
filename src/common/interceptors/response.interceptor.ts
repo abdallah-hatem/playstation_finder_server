@@ -23,6 +23,11 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, ApiResponse<T>
       return obj.map(item => this.removePasswordHash(item));
     }
 
+    // Handle Date objects specially - don't spread them
+    if (obj instanceof Date) {
+      return obj;
+    }
+
     if (typeof obj === 'object') {
       const cleaned = { ...obj };
       

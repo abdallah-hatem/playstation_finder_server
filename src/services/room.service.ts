@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { RoomRepository } from '../repositories/room.repository';
 import { ShopRepository } from '../repositories/shop.repository';
 import { TimeSlotRateService } from './time-slot-rate.service';
+import { RoomDisablePeriodService } from './room-disable-period.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Device } from '../entities/device.entity';
@@ -14,6 +15,7 @@ export class RoomService {
     private readonly roomRepository: RoomRepository,
     private readonly shopRepository: ShopRepository,
     private readonly timeSlotRateService: TimeSlotRateService,
+    private readonly roomDisablePeriodService: RoomDisablePeriodService,
     @InjectRepository(Device)
     private readonly deviceRepository: Repository<Device>,
   ) {}
@@ -92,27 +94,148 @@ export class RoomService {
     };
   }
 
-  async findByShop(shopId: string, startDate?: string, endDate?: string): Promise<Room[]> {
+  async findByShop(shopId: string, startDate?: string, endDate?: string, checkDate?: string): Promise<any[]> {
     // Validate shop exists
     const shop = await this.shopRepository.findById(shopId);
     if (!shop) {
       throw new NotFoundException('Shop not found');
     }
 
-    // If date range is provided, use it; otherwise get rooms with future reservations
+    // Get base room data with reservations
+    let rooms: Room[];
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      return await this.roomRepository.findByShopIdWithDateRange(shopId, start, end);
+      rooms = await this.roomRepository.findByShopIdWithDateRange(shopId, start, end);
+    } else {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+      rooms = await this.roomRepository.findByShopIdWithDateRange(shopId, start, end);
     }
 
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
+    // Use checkDate for time slot status checking (default to today)
+    const targetCheckDate = checkDate ? new Date(checkDate) : new Date();
+    targetCheckDate.setHours(0, 0, 0, 0);
 
-    return await this.roomRepository.findByShopIdWithDateRange(shopId, start, end);
-    // return await this.roomRepository.findByShopId(shopId);
+    // Enhance each room with time slot rates and status
+    const enhancedRooms = await Promise.all(
+      rooms.map(async (room) => {
+        // Get time slot rates for this room within operating hours
+        const timeSlotRatesData = await this.getTimeSlotRatesWithinOperatingHours(room.id);
+        
+        // Get reserved slots for the target date
+        const reservedSlots: string[] = [];
+        if (room.reservations) {
+          room.reservations.forEach(reservation => {
+            const reservationDate = new Date(reservation.date);
+            if (reservationDate.toDateString() === targetCheckDate.toDateString()) {
+              reservation.slots.forEach(slot => {
+                reservedSlots.push(slot.timeSlot);
+              });
+            }
+          });
+        }
+
+        // Enhance time slot rates with isDisabled and isBooked status
+        const enhancedTimeSlotRates = await Promise.all(
+          timeSlotRatesData.timeSlotRates.map(async (rate) => {
+            const [hours, minutes] = rate.timeSlot.split(':').map(Number);
+            const slotDateTime = new Date(targetCheckDate);
+            slotDateTime.setHours(hours, minutes, 0, 0);
+
+            // Check if disabled by owner
+            const isDisabled = await this.roomDisablePeriodService.isRoomDisabledAt(room.id, slotDateTime);
+            
+            // Check if booked by customer
+            const isBooked = reservedSlots.includes(rate.timeSlot);
+
+            return {
+              ...rate,
+              isDisabled,
+              isBooked,
+            };
+          })
+        );
+
+        return {
+          ...room,
+          timeSlotRates: enhancedTimeSlotRates,
+        };
+      })
+    );
+
+    return enhancedRooms;
+  }
+
+  async findByShopForDate(shopId: string, date?: string): Promise<any[]> {
+    // Use provided date or default to today
+    const targetDate = date ? new Date(date) : new Date();
+    targetDate.setHours(0, 0, 0, 0);
+
+    // Validate shop exists
+    const shop = await this.shopRepository.findById(shopId);
+    if (!shop) {
+      throw new NotFoundException('Shop not found');
+    }
+
+    // Set up date range for filtering reservations (same day)
+    const startDate = new Date(targetDate);
+    const endDate = new Date(targetDate);
+    endDate.setHours(23, 59, 59, 999);
+
+    // Get rooms with reservations for the target date
+    const rooms = await this.roomRepository.findByShopIdWithDateRange(shopId, startDate, endDate);
+
+    // Enhance each room with time slot rates and status
+    const enhancedRooms = await Promise.all(
+      rooms.map(async (room) => {
+        // Get time slot rates for this room within operating hours
+        const timeSlotRatesData = await this.getTimeSlotRatesWithinOperatingHours(room.id);
+        
+        // Get reserved slots for the target date
+        const reservedSlots: string[] = [];
+        if (room.reservations) {
+          room.reservations.forEach(reservation => {
+            const reservationDate = new Date(reservation.date);
+            if (reservationDate.toDateString() === targetDate.toDateString()) {
+              reservation.slots.forEach(slot => {
+                reservedSlots.push(slot.timeSlot);
+              });
+            }
+          });
+        }
+
+        // Enhance time slot rates with isDisabled and isBooked status
+        const enhancedTimeSlotRates = await Promise.all(
+          timeSlotRatesData.timeSlotRates.map(async (rate) => {
+            const [hours, minutes] = rate.timeSlot.split(':').map(Number);
+            const slotDateTime = new Date(targetDate);
+            slotDateTime.setHours(hours, minutes, 0, 0);
+
+            // Check if disabled by owner
+            const isDisabled = await this.roomDisablePeriodService.isRoomDisabledAt(room.id, slotDateTime);
+            
+            // Check if booked by customer
+            const isBooked = reservedSlots.includes(rate.timeSlot);
+
+            return {
+              ...rate,
+              isDisabled,
+              isBooked,
+            };
+          })
+        );
+
+        return {
+          ...room,
+          timeSlotRates: enhancedTimeSlotRates,
+        };
+      })
+    );
+
+    return enhancedRooms;
   }
 
   async findAvailable(shopId?: string): Promise<Room[]> {
@@ -254,8 +377,23 @@ export class RoomService {
       return slotMinutes >= this.parseTime(shop.openingTime) && slotMinutes < this.parseTime(shop.closingTime);
     });
 
-    // Calculate available slots (within operating hours and not reserved)
-    const availableSlots = operatingHoursSlots.filter(slot => !reservedSlots.includes(slot));
+    // Get disabled slots for the specific date
+    const disabledSlots: string[] = [];
+    for (const slot of operatingHoursSlots) {
+      const [hours, minutes] = slot.split(':').map(Number);
+      const slotDateTime = new Date(targetDate);
+      slotDateTime.setHours(hours, minutes, 0, 0);
+
+      const isDisabled = await this.roomDisablePeriodService.isRoomDisabledAt(roomId, slotDateTime);
+      if (isDisabled) {
+        disabledSlots.push(slot);
+      }
+    }
+
+    // Calculate available slots (within operating hours, not reserved, and not disabled)
+    const availableSlots = operatingHoursSlots.filter(slot => 
+      !reservedSlots.includes(slot) && !disabledSlots.includes(slot)
+    );
 
     return {
       room: {
