@@ -4,6 +4,8 @@ import * as bcrypt from 'bcrypt';
 import { UserRepository } from '../repositories/user.repository';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { User } from '../entities/user.entity';
+import { PaginationDto, PaginationWithSortDto } from '../dto/pagination.dto';
+import { PaginatedResponse } from '../common/interfaces/api-response.interface';
 
 @Injectable()
 export class UserService {
@@ -42,6 +44,22 @@ export class UserService {
 
   async findAll() {
     return await this.userRepository.findAll();
+  }
+
+  async findAllPaginated(paginationDto: PaginationDto): Promise<PaginatedResponse<User>> {
+    return await this.userRepository.findWithPagination(
+      paginationDto.page,
+      paginationDto.limit,
+    );
+  }
+
+  async findAllPaginatedWithSort(paginationWithSortDto: PaginationWithSortDto): Promise<PaginatedResponse<User>> {
+    const { page, limit, sortBy, sortOrder } = paginationWithSortDto;
+    return await this.userRepository.findWithPaginationAndSort(
+      { page, limit },
+      {},
+      { sortBy, sortOrder },
+    );
   }
 
   async findOne(id: string): Promise<User> {

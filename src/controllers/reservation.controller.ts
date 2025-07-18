@@ -9,32 +9,45 @@ import {
   Param,
   Query,
   UseGuards,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
-import { ReservationService } from '../services/reservation.service';
-import { CreateReservationDto } from '../dto/create-reservation.dto';
-import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
-import { ApiResponseSuccess } from '../common/decorators/api-response.decorator';
-import { CurrentAppUser, CurrentOwner } from '../common/decorators/current-user.decorator';
-import { User } from '../entities/user.entity';
-import { Owner } from '../entities/owner.entity';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { OwnerOnlyGuard } from '../auth/owner-only.guard';
+} from "@nestjs/common";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+  ApiBearerAuth,
+} from "@nestjs/swagger";
+import { ReservationService } from "../services/reservation.service";
+import { CreateReservationDto } from "../dto/create-reservation.dto";
+import { ResponseInterceptor } from "../common/interceptors/response.interceptor";
+import { ApiResponseSuccess } from "../common/decorators/api-response.decorator";
+import {
+  CurrentAppUser,
+  CurrentOwner,
+} from "../common/decorators/current-user.decorator";
+import { User } from "../entities/user.entity";
+import { Owner } from "../entities/owner.entity";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { OwnerOnlyGuard } from "../auth/owner-only.guard";
+import { PaginationDto, PaginationWithSortDto } from "../dto/pagination.dto";
+import {
+  ApiPagination,
+  ApiPaginationWithSort,
+} from "../common/decorators/pagination.decorator";
 
-@ApiTags('reservations')
-@Controller('reservations')
+@ApiTags("reservations")
+@Controller("reservations")
 @UseInterceptors(ResponseInterceptor)
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth('JWT-auth')
+@ApiBearerAuth("JWT-auth")
 export class ReservationController {
   constructor(private readonly reservationService: ReservationService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new reservation' })
-  @ApiResponseSuccess({ message: 'Reservation created successfully' })
+  @ApiOperation({ summary: "Create a new reservation" })
+  @ApiResponseSuccess({ message: "Reservation created successfully" })
   create(
     @Body() createReservationDto: CreateReservationDto,
-    @CurrentAppUser() user: User,
+    @CurrentAppUser() user: User
   ) {
     return this.reservationService.create(createReservationDto, user.id);
   }
@@ -65,20 +78,79 @@ export class ReservationController {
   //   return this.reservationService.findByUser(userId);
   // }
 
-  @Get('my-reservations')
-  @ApiOperation({ summary: 'Get current user reservations' })
-  @ApiResponseSuccess({ message: 'My reservations retrieved successfully' })
-  findMyReservations(@CurrentAppUser() user: User) {
-    return this.reservationService.findByUser(user.id);
+  // @Get("my-reservations")
+  // @ApiOperation({ summary: "Get current user reservations" })
+  // @ApiResponseSuccess({ message: "My reservations retrieved successfully" })
+  // findMyReservations(@CurrentAppUser() user: User) {
+  //   return this.reservationService.findByUser(user.id);
+  // }
+
+
+  @Get("my-reservations")
+  @ApiOperation({ summary: "Get current user reservations with pagination and sorting" })
+  @ApiPaginationWithSort()
+  @ApiResponseSuccess({ message: "My reservations retrieved successfully" })
+  findMyReservationsPaginatedWithSort(
+    @Query() paginationWithSortDto: PaginationWithSortDto,
+    @CurrentAppUser() user: User
+  ) {
+    return this.reservationService.findByUserPaginatedWithSort(user.id, paginationWithSortDto);
   }
 
-  @Get('my-owner-reservations')
+  // @Get("my-owner-reservations")
+  // @UseGuards(OwnerOnlyGuard)
+  // @ApiOperation({ summary: "Get current owner reservations" })
+  // @ApiResponseSuccess({
+  //   message: "My owner reservations retrieved successfully",
+  // })
+  // findMyOwnerReservations(@CurrentOwner() owner: Owner) {
+  //   return this.reservationService.findByOwner(owner.id);
+  // }
+
+
+  @Get("my-owner-reservations")
   @UseGuards(OwnerOnlyGuard)
-  @ApiOperation({ summary: 'Get current owner reservations' })
-  @ApiResponseSuccess({ message: 'My owner reservations retrieved successfully' })
-  findMyOwnerReservations(@CurrentOwner() owner: Owner) {
-    return this.reservationService.findByOwner(owner.id);
+  @ApiOperation({ summary: "Get current owner reservations with pagination and sorting" })
+  @ApiPaginationWithSort()
+  @ApiQuery({
+    name: "shopId",
+    description: "Filter by shop ID",
+    required: false,
+  })
+  @ApiResponseSuccess({
+    message: "My owner reservations retrieved successfully",
+  })
+  findMyOwnerReservationsPaginatedWithSort(
+    @Query() paginationWithSortDto: PaginationWithSortDto,
+    @CurrentOwner() owner: Owner,
+    @Query("shopId") shopId?: string
+  ) {
+    return this.reservationService.findByOwnerPaginatedWithSort(owner.id, paginationWithSortDto, shopId);
   }
+
+  // @Get('all/paginated')
+  // @UseGuards(OwnerOnlyGuard)
+  // @ApiOperation({ summary: 'Get all reservations with pagination (admin only)' })
+  // @ApiPagination()
+  // @ApiResponseSuccess({ message: 'All reservations retrieved successfully' })
+  // findAllPaginated(@Query() paginationDto: PaginationDto) {
+  //   return this.reservationService.findAllPaginated(paginationDto);
+  // }
+
+  // @Get("all")
+  // @UseGuards(OwnerOnlyGuard)
+  // @ApiOperation({
+  //   summary: "Get all reservations with pagination and sorting (admin only)",
+  // })
+  // @ApiPaginationWithSort()
+  // @ApiResponseSuccess({ message: "All reservations retrieved successfully" })
+  // findAllPaginatedWithSort(
+  //   @Query() paginationWithSortDto: PaginationWithSortDto
+  // ) {
+  //   return this.reservationService.findAllPaginatedWithSort(
+  //     paginationWithSortDto
+  //   );
+  // }
 
   // @Get('room/:roomId')
   // @UseGuards(OwnerOnlyGuard)
@@ -118,4 +190,4 @@ export class ReservationController {
   // remove(@Param('id', ParseUUIDPipe) id: string, @CurrentOwner() owner: Owner) {
   //   return this.reservationService.removeForOwner(id, owner.id);
   // }
-} 
+}

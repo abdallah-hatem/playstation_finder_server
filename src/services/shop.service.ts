@@ -3,6 +3,8 @@ import { ShopRepository } from '../repositories/shop.repository';
 import { OwnerRepository } from '../repositories/owner.repository';
 import { CreateShopDto, CreateShopWithImagesDto, UpdateShopWithImagesDto } from '../dto/create-shop.dto';
 import { Shop } from '../entities/shop.entity';
+import { PaginationDto, PaginationWithSortDto } from '../dto/pagination.dto';
+import { PaginatedResponse } from '../common/interfaces/api-response.interface';
 
 @Injectable()
 export class ShopService {
@@ -69,6 +71,64 @@ export class ShopService {
     });
   }
 
+  async findAllPaginated(paginationDto: PaginationDto, deviceId?: string, deviceName?: string): Promise<PaginatedResponse<Shop>> {
+    if (deviceId || deviceName) {
+      // For now, return non-paginated filtered results
+      // You can enhance this later to support pagination with filters
+      const filteredShops = await this.shopRepository.findAllWithFilters(deviceId, deviceName);
+      return {
+        success: true,
+        message: 'Filtered shops retrieved successfully',
+        data: filteredShops,
+        pagination: {
+          page: 1,
+          limit: filteredShops.length,
+          total: filteredShops.length,
+          pages: 1,
+        },
+        statusCode: 200,
+        timestamp: new Date().toISOString(),
+      };
+    }
+    
+    return await this.shopRepository.findWithPagination(
+      paginationDto.page,
+      paginationDto.limit,
+      {
+        relations: ['owner'],
+      },
+    );
+  }
+
+  async findAllPaginatedWithSort(paginationWithSortDto: PaginationWithSortDto, deviceId?: string, deviceName?: string): Promise<PaginatedResponse<Shop>> {
+    if (deviceId || deviceName) {
+      // For now, return non-paginated filtered results
+      const filteredShops = await this.shopRepository.findAllWithFilters(deviceId, deviceName);
+      return {
+        success: true,
+        message: 'Filtered shops retrieved successfully',
+        data: filteredShops,
+        pagination: {
+          page: 1,
+          limit: filteredShops.length,
+          total: filteredShops.length,
+          pages: 1,
+        },
+        statusCode: 200,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    const { page, limit, sortBy, sortOrder } = paginationWithSortDto;
+    return await this.shopRepository.findWithPaginationAndSort(
+      { page, limit },
+      {
+        relations: ['owner'],
+      },
+      { sortBy, sortOrder },
+    );
+  }
+
   async findOne(id: string): Promise<Shop> {
     const shop = await this.shopRepository.findOne({
       where: { id },
@@ -91,6 +151,29 @@ export class ShopService {
   async findByOwner(ownerId: string): Promise<Shop[]> {
     // Owner validation is handled by JWT auth guard
     return await this.shopRepository.findByOwnerId(ownerId);
+  }
+
+  async findByOwnerPaginated(ownerId: string, paginationDto: PaginationDto): Promise<PaginatedResponse<Shop>> {
+    return await this.shopRepository.findWithPagination(
+      paginationDto.page,
+      paginationDto.limit,
+      {
+        where: { ownerId },
+        relations: ['owner'],
+      },
+    );
+  }
+
+  async findByOwnerPaginatedWithSort(ownerId: string, paginationWithSortDto: PaginationWithSortDto): Promise<PaginatedResponse<Shop>> {
+    const { page, limit, sortBy, sortOrder } = paginationWithSortDto;
+    return await this.shopRepository.findWithPaginationAndSort(
+      { page, limit },
+      {
+        where: { ownerId },
+        relations: ['owner'],
+      },
+      { sortBy, sortOrder },
+    );
   }
 
   async findNearby(lat: string, long: string, radius: string = '10'): Promise<Shop[]> {

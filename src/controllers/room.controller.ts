@@ -23,6 +23,8 @@ import { OwnerOnlyGuard } from '../auth/owner-only.guard';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentOwner } from '../common/decorators/current-user.decorator';
 import { Owner } from '../entities/owner.entity';
+import { PaginationDto, PaginationWithSortDto } from '../dto/pagination.dto';
+import { ApiPagination, ApiPaginationWithSort } from '../common/decorators/pagination.decorator';
 
 @ApiTags('rooms')
 @Controller('rooms')
@@ -39,13 +41,51 @@ export class RoomController {
     return this.roomService.create(createRoomDto);
   }
 
+  // @Get()
+  // @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
+  // @ApiBearerAuth('JWT-auth')
+  // @ApiOperation({ summary: 'Get rooms for authenticated owner' })
+  // @ApiResponseSuccess({ message: 'Owner rooms retrieved successfully' })
+  // findMyRooms(@CurrentOwner() owner: Owner) {
+  //   return this.roomService.findByOwner(owner.id);
+  // }
+
+  // @Get('paginated')
+  // @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
+  // @ApiBearerAuth('JWT-auth')
+  // @ApiOperation({ summary: 'Get owner rooms with pagination' })
+  // @ApiPagination()
+  // @ApiResponseSuccess({ message: 'Owner rooms retrieved successfully' })
+  // findMyRoomsPaginated(@Query() paginationDto: PaginationDto, @CurrentOwner() owner: Owner) {
+  //   return this.roomService.findByOwnerPaginated(owner.id, paginationDto);
+  // }
+
   @Get()
   @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get rooms for authenticated owner' })
+  @ApiOperation({ summary: 'Get owner rooms with pagination and sorting' })
+  @ApiPaginationWithSort()
   @ApiResponseSuccess({ message: 'Owner rooms retrieved successfully' })
-  findMyRooms(@CurrentOwner() owner: Owner) {
-    return this.roomService.findByOwner(owner.id);
+  findMyRoomsPaginatedWithSort(@Query() paginationWithSortDto: PaginationWithSortDto, @CurrentOwner() owner: Owner) {
+    return this.roomService.findByOwnerPaginatedWithSort(owner.id, paginationWithSortDto);
+  }
+
+  // @Get('all/paginated')
+  // @Public()
+  // @ApiOperation({ summary: 'Get all rooms with pagination (public)' })
+  // @ApiPagination()
+  // @ApiResponseSuccess({ message: 'All rooms retrieved successfully' })
+  // findAllPaginated(@Query() paginationDto: PaginationDto) {
+  //   return this.roomService.findAllPaginated(paginationDto);
+  // }
+
+  @Get('all')
+  @Public()
+  @ApiOperation({ summary: 'Get all rooms with pagination and sorting (public)' })
+  @ApiPaginationWithSort()
+  @ApiResponseSuccess({ message: 'All rooms retrieved successfully' })
+  findAllPaginatedWithSort(@Query() paginationWithSortDto: PaginationWithSortDto) {
+    return this.roomService.findAllPaginatedWithSort(paginationWithSortDto);
   }
 
   // @Get('all')

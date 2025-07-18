@@ -8,6 +8,8 @@ import { Repository } from 'typeorm';
 import { Device } from '../entities/device.entity';
 import { CreateRoomDto } from '../dto/create-room.dto';
 import { Room } from '../entities/room.entity';
+import { PaginationDto, PaginationWithSortDto } from '../dto/pagination.dto';
+import { PaginatedResponse } from '../common/interfaces/api-response.interface';
 
 @Injectable()
 export class RoomService {
@@ -67,8 +69,52 @@ export class RoomService {
     });
   }
 
+  async findAllPaginated(paginationDto: PaginationDto): Promise<PaginatedResponse<Room>> {
+    return await this.roomRepository.findWithPagination(
+      paginationDto.page,
+      paginationDto.limit,
+      {
+        relations: ['shop', 'device'],
+      },
+    );
+  }
+
+  async findAllPaginatedWithSort(paginationWithSortDto: PaginationWithSortDto): Promise<PaginatedResponse<Room>> {
+    const { page, limit, sortBy, sortOrder } = paginationWithSortDto;
+    return await this.roomRepository.findWithPaginationAndSort(
+      { page, limit },
+      {
+        relations: ['shop', 'device'],
+      },
+      { sortBy, sortOrder },
+    );
+  }
+
   async findByOwner(ownerId: string) {
     return await this.roomRepository.findByOwnerId(ownerId);
+  }
+
+  async findByOwnerPaginated(ownerId: string, paginationDto: PaginationDto): Promise<PaginatedResponse<Room>> {
+    return await this.roomRepository.findWithPagination(
+      paginationDto.page,
+      paginationDto.limit,
+      {
+        where: { shop: { ownerId } },
+        relations: ['shop', 'device'],
+      },
+    );
+  }
+
+  async findByOwnerPaginatedWithSort(ownerId: string, paginationWithSortDto: PaginationWithSortDto): Promise<PaginatedResponse<Room>> {
+    const { page, limit, sortBy, sortOrder } = paginationWithSortDto;
+    return await this.roomRepository.findWithPaginationAndSort(
+      { page, limit },
+      {
+        where: { shop: { ownerId } },
+        relations: ['shop', 'device'],
+      },
+      { sortBy, sortOrder },
+    );
   }
 
   async findOneById(id: string): Promise<Room> {

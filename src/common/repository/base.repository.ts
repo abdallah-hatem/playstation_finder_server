@@ -1,5 +1,6 @@
-import { Repository, FindOptionsWhere, FindManyOptions } from 'typeorm';
+import { Repository, FindOptionsWhere, FindManyOptions, FindOptionsOrder } from 'typeorm';
 import { PaginatedResponse } from '../interfaces/api-response.interface';
+import { PaginationDto, PaginationWithSortDto } from '../../dto/pagination.dto';
 
 export abstract class BaseRepository<T> {
   constructor(protected readonly repository: Repository<T>) {}
@@ -26,6 +27,46 @@ export abstract class BaseRepository<T> {
     const skip = (page - 1) * limit;
     const [data, total] = await this.repository.findAndCount({
       ...options,
+      skip,
+      take: limit,
+    });
+
+    const pages = Math.ceil(total / limit);
+
+    return {
+      success: true,
+      message: 'Data retrieved successfully',
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages,
+      },
+      statusCode: 200,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  async findWithPaginationAndSort(
+    paginationDto: PaginationDto,
+    options?: FindManyOptions<T>,
+    sortDto?: { sortBy?: string; sortOrder?: 'ASC' | 'DESC' },
+  ): Promise<PaginatedResponse<T>> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    // Build order options
+    let order: FindOptionsOrder<T> = {};
+    if (sortDto?.sortBy) {
+      order = {
+        [sortDto.sortBy]: sortDto.sortOrder || 'DESC',
+      } as FindOptionsOrder<T>;
+    }
+
+    const [data, total] = await this.repository.findAndCount({
+      ...options,
+      order,
       skip,
       take: limit,
     });
