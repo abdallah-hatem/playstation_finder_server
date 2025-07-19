@@ -193,7 +193,8 @@ export class ReservationRepository extends BaseRepository<Reservation> {
     searchTerm?: string,
     sortBy: string = 'createdAt',
     sortOrder: 'ASC' | 'DESC' = 'DESC',
-    status?: string
+    status?: string,
+    shopId?: string
   ): Promise<{ data: Reservation[]; total: number }> {
     let queryBuilder = this.reservationRepository
       .createQueryBuilder("reservation")
@@ -203,6 +204,11 @@ export class ReservationRepository extends BaseRepository<Reservation> {
       .leftJoinAndSelect("reservation.user", "user")
       .leftJoinAndSelect("reservation.slots", "slots")
       .where("reservation.userId = :userId", { userId });
+
+    // Apply shopId filter if provided
+    if (shopId) {
+      queryBuilder = queryBuilder.andWhere("shop.id = :shopId", { shopId });
+    }
 
     // Apply status filter if provided
     if (status) {

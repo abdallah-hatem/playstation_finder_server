@@ -431,7 +431,8 @@ export class ReservationService {
 
   async findByUserWithSearchPaginatedWithSort(
     userId: string,
-    reservationFilterDto: ReservationFilterDto
+    reservationFilterDto: ReservationFilterDto,
+    shopId?: string
   ): Promise<PaginatedResponse<Reservation>> {
     const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'DESC', search, status } = reservationFilterDto;
     
@@ -442,7 +443,8 @@ export class ReservationService {
       search,
       sortBy,
       sortOrder,
-      status
+      status,
+      shopId
     );
 
     // Auto-update statuses based on time before returning

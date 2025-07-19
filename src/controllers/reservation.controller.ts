@@ -98,12 +98,18 @@ export class ReservationController {
   @Get("my-reservations")
   @ApiOperation({ summary: "Get current user reservations with pagination, sorting, search, and status filtering" })
   @ApiReservationFilter()
+  @ApiQuery({
+    name: "shopId",
+    description: "Filter by shop ID",
+    required: false,
+  })
   @ApiResponseSuccess({ message: "My reservations retrieved successfully" })
   findMyReservationsPaginatedWithSortAndSearch(
     @Query() reservationFilterDto: ReservationFilterDto,
-    @CurrentAppUser() user: User
+    @CurrentAppUser() user: User,
+    @Query("shopId") shopId?: string
   ) {
-    return this.reservationService.findByUserWithSearchPaginatedWithSort(user.id, reservationFilterDto);
+    return this.reservationService.findByUserWithSearchPaginatedWithSort(user.id, reservationFilterDto, shopId);
   }
 
   // @Get("my-owner-reservations")
