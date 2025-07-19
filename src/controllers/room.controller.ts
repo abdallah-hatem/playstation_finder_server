@@ -133,14 +133,14 @@ export class RoomController {
     return this.roomService.findOneById(id);
   }
 
-  @Get(':id/with-rates')
-  @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get room with time slot rates (owner only)' })
-  @ApiResponseSuccess({ message: 'Room with time slot rates retrieved successfully' })
-  findOneWithTimeSlotRates(@Param('id', ParseUUIDPipe) id: string) {
-    return this.roomService.getTimeSlotRatesWithinOperatingHours(id);
-  }
+  // @Get(':id/with-rates')
+  // @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
+  // @ApiBearerAuth('JWT-auth')
+  // @ApiOperation({ summary: 'Get room with time slot rates (owner only)' })
+  // @ApiResponseSuccess({ message: 'Room with time slot rates retrieved successfully' })
+  // findOneWithTimeSlotRates(@Param('id', ParseUUIDPipe) id: string) {
+  //   return this.roomService.getTimeSlotRatesWithinOperatingHours(id);
+  // }
 
   // @Get(':id/operating-hours-rates')
   // @Public()
