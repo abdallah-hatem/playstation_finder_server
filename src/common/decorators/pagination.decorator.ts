@@ -1,6 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiQuery, ApiExtraModels, getSchemaPath } from '@nestjs/swagger';
 import { PaginationDto, PaginationWithSortDto, PaginationWithSortAndSearchDto } from '../../dto/pagination.dto';
+import { ReservationStatus } from '../enums/reservation-type.enum';
 
 export function ApiPagination() {
   return applyDecorators(
@@ -50,6 +51,19 @@ export function ApiPaginationWithSortAndSearch() {
       type: String,
       description: 'Search query to filter results across multiple fields (user name, room name, shop name, address, phone, etc.)',
       example: 'john',
+    }),
+  );
+}
+
+export function ApiReservationFilter() {
+  return applyDecorators(
+    ApiPaginationWithSortAndSearch(),
+    ApiQuery({
+      name: 'status',
+      required: false,
+      enum: ReservationStatus,
+      description: 'Filter by reservation status',
+      example: ReservationStatus.PENDING,
     }),
   );
 }

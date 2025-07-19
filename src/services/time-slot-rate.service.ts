@@ -121,9 +121,7 @@ export class TimeSlotRateService {
     
     for (let hour = 0; hour <= 23; hour++) {
       timeSlots.push(`${hour.toString().padStart(2, '0')}:00`);
-      if (hour < 23) {
-        timeSlots.push(`${hour.toString().padStart(2, '0')}:30`);
-      }
+      timeSlots.push(`${hour.toString().padStart(2, '0')}:30`);
     }
 
     const rates = defaultRates || {

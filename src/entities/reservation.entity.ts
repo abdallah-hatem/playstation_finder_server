@@ -7,50 +7,63 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
-} from 'typeorm';
-import { IsNotEmpty, IsNumber, IsEnum, IsDateString } from 'class-validator';
-import { Room } from './room.entity';
-import { User } from './user.entity';
-import { ReservationSlot } from './reservation-slot.entity';
-import { ReservationType } from '../common/enums/reservation-type.enum';
+} from "typeorm";
+import { IsNotEmpty, IsNumber, IsEnum, IsDateString } from "class-validator";
+import { Room } from "./room.entity";
+import { User } from "./user.entity";
+import { ReservationSlot } from "./reservation-slot.entity";
+import {
+  ReservationStatus,
+  ReservationType,
+} from "../common/enums/reservation-type.enum";
 
-@Entity('reservations')
+@Entity("reservations")
 export class Reservation {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @Column({ name: 'room_id' })
+  @Column({ name: "room_id" })
   roomId: string;
 
-  @Column({ name: 'user_id' })
+  @Column({ name: "user_id" })
   userId: string;
 
-  @Column({ type: 'date' })
+  @Column({ type: "date" })
   @IsDateString()
   date: Date;
 
-  @Column({ type: 'enum', enum: ReservationType })
+  @Column({ type: "enum", enum: ReservationType })
   @IsEnum(ReservationType)
   type: ReservationType;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, name: 'total_price' })
+  @Column({ type: "decimal", precision: 10, scale: 2, name: "total_price" })
   @IsNumber()
   totalPrice: number;
 
   @ManyToOne(() => Room, (room) => room.reservations)
-  @JoinColumn({ name: 'room_id' })
+  @JoinColumn({ name: "room_id" })
   room: Room;
 
   @ManyToOne(() => User, (user) => user.reservations)
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: "user_id" })
   user: User;
 
-  @OneToMany(() => ReservationSlot, (slot) => slot.reservation, { cascade: true })
+  @OneToMany(() => ReservationSlot, (slot) => slot.reservation, {
+    cascade: true,
+  })
   slots: ReservationSlot[];
 
-  @CreateDateColumn({ name: 'created_at' })
+  @Column({ 
+    type: "enum", 
+    enum: ReservationStatus,
+    default: ReservationStatus.PENDING 
+  })
+  @IsEnum(ReservationStatus)
+  status: ReservationStatus;
+
+  @CreateDateColumn({ name: "created_at" })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn({ name: "updated_at" })
   updatedAt: Date;
-} 
+}

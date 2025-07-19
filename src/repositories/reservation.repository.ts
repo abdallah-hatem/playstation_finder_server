@@ -126,6 +126,7 @@ export class ReservationRepository extends BaseRepository<Reservation> {
         LOWER(shop.address) LIKE :search OR 
         LOWER(shop.phone) LIKE :search OR 
         LOWER(CAST(reservation.type AS TEXT)) LIKE :search OR
+        LOWER(CAST(reservation.status AS TEXT)) LIKE :search OR
         CAST(reservation.totalPrice AS TEXT) LIKE :search
       )`,
       { search: searchPattern }
@@ -142,7 +143,8 @@ export class ReservationRepository extends BaseRepository<Reservation> {
     searchTerm?: string,
     sortBy: string = 'createdAt',
     sortOrder: 'ASC' | 'DESC' = 'DESC',
-    shopId?: string
+    shopId?: string,
+    status?: string
   ): Promise<{ data: Reservation[]; total: number }> {
     let queryBuilder = this.reservationRepository
       .createQueryBuilder("reservation")
@@ -156,6 +158,11 @@ export class ReservationRepository extends BaseRepository<Reservation> {
     // Apply shop filter if provided
     if (shopId) {
       queryBuilder = queryBuilder.andWhere("shop.id = :shopId", { shopId });
+    }
+
+    // Apply status filter if provided
+    if (status) {
+      queryBuilder = queryBuilder.andWhere("reservation.status = :status", { status });
     }
 
     // Apply search filter
@@ -185,7 +192,8 @@ export class ReservationRepository extends BaseRepository<Reservation> {
     limit: number = 10,
     searchTerm?: string,
     sortBy: string = 'createdAt',
-    sortOrder: 'ASC' | 'DESC' = 'DESC'
+    sortOrder: 'ASC' | 'DESC' = 'DESC',
+    status?: string
   ): Promise<{ data: Reservation[]; total: number }> {
     let queryBuilder = this.reservationRepository
       .createQueryBuilder("reservation")
@@ -195,6 +203,11 @@ export class ReservationRepository extends BaseRepository<Reservation> {
       .leftJoinAndSelect("reservation.user", "user")
       .leftJoinAndSelect("reservation.slots", "slots")
       .where("reservation.userId = :userId", { userId });
+
+    // Apply status filter if provided
+    if (status) {
+      queryBuilder = queryBuilder.andWhere("reservation.status = :status", { status });
+    }
 
     // Apply search filter
     queryBuilder = this.applySearchFilter(queryBuilder, searchTerm);

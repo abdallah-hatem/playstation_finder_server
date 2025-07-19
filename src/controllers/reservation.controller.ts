@@ -9,6 +9,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Patch,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -29,10 +30,14 @@ import { Owner } from "../entities/owner.entity";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { OwnerOnlyGuard } from "../auth/owner-only.guard";
 import { PaginationDto, PaginationWithSortDto, PaginationWithSortAndSearchDto } from "../dto/pagination.dto";
+import { ReservationFilterDto } from "../dto/reservation-filter.dto";
+import { UpdateReservationStatusDto } from "../dto/update-reservation-status.dto";
+import { ReservationStatusService } from "../services/reservation-status.service";
 import {
   ApiPagination,
   ApiPaginationWithSort,
   ApiPaginationWithSortAndSearch,
+  ApiReservationFilter,
 } from "../common/decorators/pagination.decorator";
 
 @ApiTags("reservations")
@@ -41,7 +46,10 @@ import {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth("JWT-auth")
 export class ReservationController {
-  constructor(private readonly reservationService: ReservationService) {}
+  constructor(
+    private readonly reservationService: ReservationService,
+    private readonly reservationStatusService: ReservationStatusService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: "Create a new reservation" })
@@ -87,14 +95,14 @@ export class ReservationController {
   // }
 
   @Get("my-reservations")
-  @ApiOperation({ summary: "Get current user reservations with pagination, sorting, and search" })
-  @ApiPaginationWithSortAndSearch()
+  @ApiOperation({ summary: "Get current user reservations with pagination, sorting, search, and status filtering" })
+  @ApiReservationFilter()
   @ApiResponseSuccess({ message: "My reservations retrieved successfully" })
   findMyReservationsPaginatedWithSortAndSearch(
-    @Query() paginationWithSortAndSearchDto: PaginationWithSortAndSearchDto,
+    @Query() reservationFilterDto: ReservationFilterDto,
     @CurrentAppUser() user: User
   ) {
-    return this.reservationService.findByUserWithSearchPaginatedWithSort(user.id, paginationWithSortAndSearchDto);
+    return this.reservationService.findByUserWithSearchPaginatedWithSort(user.id, reservationFilterDto);
   }
 
   // @Get("my-owner-reservations")
@@ -109,8 +117,8 @@ export class ReservationController {
 
   @Get("my-owner-reservations")
   @UseGuards(OwnerOnlyGuard)
-  @ApiOperation({ summary: "Get current owner reservations with pagination, sorting, and search" })
-  @ApiPaginationWithSortAndSearch()
+  @ApiOperation({ summary: "Get current owner reservations with pagination, sorting, search, and status filtering" })
+  @ApiReservationFilter()
   @ApiQuery({
     name: "shopId",
     description: "Filter by shop ID",
@@ -120,11 +128,11 @@ export class ReservationController {
     message: "My owner reservations retrieved successfully",
   })
   findMyOwnerReservationsPaginatedWithSortAndSearch(
-    @Query() paginationWithSortAndSearchDto: PaginationWithSortAndSearchDto,
+    @Query() reservationFilterDto: ReservationFilterDto,
     @CurrentOwner() owner: Owner,
     @Query("shopId") shopId?: string
   ) {
-    return this.reservationService.findByOwnerWithSearchPaginatedWithSort(owner.id, paginationWithSortAndSearchDto, shopId);
+    return this.reservationService.findByOwnerWithSearchPaginatedWithSort(owner.id, reservationFilterDto, shopId);
   }
 
   // @Get('all/paginated')
@@ -189,4 +197,42 @@ export class ReservationController {
   // remove(@Param('id', ParseUUIDPipe) id: string, @CurrentOwner() owner: Owner) {
   //   return this.reservationService.removeForOwner(id, owner.id);
   // }
+
+  @Patch(':id/status')
+  @UseGuards(OwnerOnlyGuard)
+  @ApiOperation({ summary: 'Update reservation status (owner only)' })
+  @ApiResponseSuccess({ message: 'Reservation status updated successfully' })
+  updateReservationStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateStatusDto: UpdateReservationStatusDto,
+    @CurrentOwner() owner: Owner,
+  ) {
+    return this.reservationStatusService.updateReservationStatusByOwner(
+      id,
+      updateStatusDto.status,
+      owner.id,
+    );
+  }
+
+  @Get(':id/valid-statuses')
+  @UseGuards(OwnerOnlyGuard)
+  @ApiOperation({ summary: 'Get valid status transitions for a reservation (owner only)' })
+  @ApiResponseSuccess({ message: 'Valid status transitions retrieved successfully' })
+  getValidStatusTransitions(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentOwner() owner: Owner,
+  ) {
+    return this.reservationStatusService.getValidStatusTransitions(id, owner.id);
+  }
+
+  @Post(':id/auto-update-status')
+  @UseGuards(OwnerOnlyGuard)
+  @ApiOperation({ summary: 'Manually trigger status update based on time (owner only)' })
+  @ApiResponseSuccess({ message: 'Reservation status updated based on time' })
+  triggerStatusUpdate(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentOwner() owner: Owner,
+  ) {
+    return this.reservationStatusService.updateReservationStatusBasedOnTime(id);
+  }
 }

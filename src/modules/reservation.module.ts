@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { ReservationService } from '../services/reservation.service';
+import { ReservationStatusService } from '../services/reservation-status.service';
 import { ReservationController } from '../controllers/reservation.controller';
 import { ReservationRepository } from '../repositories/reservation.repository';
 import { RoomRepository } from '../repositories/room.repository';
@@ -18,7 +19,7 @@ import { Shop } from '../entities/shop.entity';
 @Module({
   imports: [TypeOrmModule.forFeature([Reservation, ReservationSlot, Room, User, Shop]), JwtModule, RoomModule],
   controllers: [ReservationController],
-  providers: [ReservationService, ReservationRepository, RoomRepository, UserRepository, ShopRepository, OwnerOnlyGuard],
-  exports: [ReservationService, ReservationRepository],
+  providers: [ReservationService, ReservationStatusService, ReservationRepository, RoomRepository, UserRepository, ShopRepository, OwnerOnlyGuard],
+  exports: [ReservationService, ReservationStatusService, ReservationRepository],
 })
 export class ReservationModule {} 
