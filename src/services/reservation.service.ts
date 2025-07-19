@@ -6,7 +6,7 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, In } from "typeorm";
+import { Repository, In, DataSource } from "typeorm";
 import { ReservationRepository } from "../repositories/reservation.repository";
 import { RoomRepository } from "../repositories/room.repository";
 import { UserRepository } from "../repositories/user.repository";
@@ -18,6 +18,7 @@ import { ReservationSlot } from "../entities/reservation-slot.entity";
 import { ReservationType, ReservationStatus } from "../common/enums/reservation-type.enum";
 import { PaginationDto, PaginationWithSortDto, PaginationWithSortAndSearchDto } from "../dto/pagination.dto";
 import { ReservationFilterDto } from "../dto/reservation-filter.dto";
+import { SplitReservationDto, NewReservationSlotDto } from "../dto/split-reservation.dto";
 import { PaginatedResponse } from "../common/interfaces/api-response.interface";
 
 @Injectable()
@@ -28,6 +29,7 @@ export class ReservationService {
     private readonly userRepository: UserRepository,
     private readonly shopRepository: ShopRepository,
     private readonly roomDisablePeriodService: RoomDisablePeriodService,
+    private readonly dataSource: DataSource,
     @InjectRepository(ReservationSlot)
     private readonly reservationSlotRepository: Repository<ReservationSlot>,
     @InjectRepository(Reservation)
@@ -800,4 +802,249 @@ export class ReservationService {
 
     return reservation;
   }
+
+  /**
+   * Split an in-progress reservation into multiple new reservations
+   * Only allowed when reservation status is IN_PROGRESS
+   */
+  async splitInProgressReservation(
+    reservationId: string,
+    ownerId: string,
+    splitDto: SplitReservationDto
+  ): Promise<{ originalReservation: Reservation; newReservations: Reservation[] }> {
+    // Find the original reservation with all relations
+    const originalReservation = await this.repository.findOne({
+      where: { id: reservationId },
+      relations: ['room', 'room.shop', 'room.device', 'slots', 'user'],
+    });
+
+    if (!originalReservation) {
+      throw new NotFoundException('Reservation not found');
+    }
+
+    // Verify owner owns the shop
+    if (originalReservation.room.shop.ownerId !== ownerId) {
+      throw new ForbiddenException('You can only modify reservations in your own shops');
+    }
+
+    // Check if reservation is in progress
+    if (originalReservation.status !== ReservationStatus.IN_PROGRESS) {
+      throw new BadRequestException('Can only split reservations that are currently in progress');
+    }
+
+    // Get current time and reservation slots
+    const currentTime = new Date();
+    const allSlots = originalReservation.slots.map(slot => slot.timeSlot).sort();
+    
+    // Find slots that haven't started yet (future slots only)
+    // A slot is "future" if current time is before the slot start time
+    const remainingSlots = allSlots.filter(slot => {
+      const [slotHour, slotMinute] = slot.split(':').map(Number);
+      const slotStartTime = new Date(originalReservation.date);
+      slotStartTime.setHours(slotHour, slotMinute, 0, 0);
+      
+      return currentTime < slotStartTime; // Only slots that haven't started yet
+    });
+
+    if (remainingSlots.length === 0) {
+      throw new BadRequestException('No remaining time slots to split');
+    }
+
+    if (remainingSlots.length < 2) {
+      throw new BadRequestException('Need at least 2 remaining slots to split');
+    }
+
+    // Validate each new reservation has at least 1 slot
+    for (const newRes of splitDto.newReservations) {
+      if (newRes.slotCount < 1) {
+        throw new BadRequestException('Each new reservation must have at least 1 slot');
+      }
+    }
+
+    // Validate that the total slots in split equals remaining slots
+    const totalSplitSlots = splitDto.newReservations.reduce((sum, res) => sum + res.slotCount, 0);
+    if (totalSplitSlots !== remainingSlots.length) {
+      throw new BadRequestException(
+        `Total slots in split (${totalSplitSlots}) must equal remaining slots (${remainingSlots.length})`
+      );
+    }
+
+    // Validate minimum of 2 new reservations for a meaningful split
+    if (splitDto.newReservations.length < 2) {
+      throw new BadRequestException('Split operation requires at least 2 new reservations');
+    }
+
+    // Validate reservation types are compatible with device
+    const deviceType = originalReservation.room.device.name.toLowerCase();
+    const isGamingDevice = ['ps4', 'ps5', 'xbox'].some(gaming => deviceType.includes(gaming));
+
+    for (const newRes of splitDto.newReservations) {
+      if (isGamingDevice && newRes.type === ReservationType.OTHER) {
+        throw new BadRequestException(`Gaming devices cannot use reservation type 'other'`);
+      }
+      if (!isGamingDevice && (newRes.type === ReservationType.SINGLE || newRes.type === ReservationType.MULTI)) {
+        throw new BadRequestException(`Non-gaming devices can only use reservation type 'other'`);
+      }
+    }
+
+    // Validate rates exist for the reservation types
+    for (const newRes of splitDto.newReservations) {
+      this.validateReservationTypeRate(originalReservation.room, newRes.type);
+    }
+
+    // Create new reservations
+    const newReservations: Reservation[] = [];
+    let slotIndex = 0;
+
+    await this.dataSource.transaction(async (manager) => {
+      // Find consumed slots (slots that have started or finished)
+      const consumedSlots = allSlots.filter(slot => {
+        const [slotHour, slotMinute] = slot.split(':').map(Number);
+        const slotStartTime = new Date(originalReservation.date);
+        slotStartTime.setHours(slotHour, slotMinute, 0, 0);
+        
+        return currentTime >= slotStartTime; // Slots that have started
+      });
+
+      // Handle case where no slots have been consumed yet
+      if (consumedSlots.length === 0) {
+        throw new BadRequestException('Cannot split reservation before it has started. Wait until at least one time slot has begun.');
+      }
+      
+      // Remove remaining slots from original reservation
+      await manager.delete(ReservationSlot, {
+        reservationId: reservationId,
+        timeSlot: In(remainingSlots)
+      });
+
+      // Update original reservation status and price based on consumed slots only
+      const consumedPrice = this.calculateTotalPrice(originalReservation.room, originalReservation.type, consumedSlots.length);
+      await manager.update(Reservation, reservationId, { 
+        status: ReservationStatus.COMPLETED,
+        totalPrice: consumedPrice
+      });
+
+      // Create new reservations for remaining slots
+      for (const newResDto of splitDto.newReservations) {
+        const assignedSlots = remainingSlots.slice(slotIndex, slotIndex + newResDto.slotCount);
+        slotIndex += newResDto.slotCount;
+
+        // Calculate price for this reservation
+        const totalPrice = this.calculateTotalPrice(originalReservation.room, newResDto.type, newResDto.slotCount);
+
+        // Create new reservation
+        const newReservation = manager.create(Reservation, {
+          userId: originalReservation.userId,
+          roomId: originalReservation.roomId,
+          date: originalReservation.date,
+          type: newResDto.type,
+          totalPrice,
+          status: ReservationStatus.IN_PROGRESS, // Continue as in progress
+        });
+
+        const savedReservation = await manager.save(newReservation);
+
+        // Create reservation slots
+        const reservationSlots = assignedSlots.map(timeSlot => 
+          manager.create(ReservationSlot, {
+            reservationId: savedReservation.id,
+            timeSlot,
+          })
+        );
+
+        await manager.save(ReservationSlot, reservationSlots);
+
+        // Load the complete reservation with relations
+        const completeReservation = await manager.findOne(Reservation, {
+          where: { id: savedReservation.id },
+          relations: ['room', 'room.shop', 'room.device', 'slots', 'user'],
+        });
+
+        newReservations.push(completeReservation);
+      }
+    });
+
+    // Update original reservation status
+    originalReservation.status = ReservationStatus.COMPLETED;
+
+    return {
+      originalReservation,
+      newReservations,
+    };
+  }
+
+  /**
+   * Get remaining slots for an in-progress reservation
+   */
+  async getRemainingSlots(reservationId: string, ownerId: string): Promise<{
+    reservationId: string;
+    currentStatus: ReservationStatus;
+    allSlots: string[];
+    consumedSlots: string[];
+    remainingSlots: string[];
+    canSplit: boolean;
+    splitRequirements: {
+      hasStarted: boolean;
+      hasRemainingSlots: boolean;
+      isInProgress: boolean;
+    };
+  }> {
+    // Find the reservation with all relations
+    const reservation = await this.repository.findOne({
+      where: { id: reservationId },
+      relations: ['room', 'room.shop', 'slots'],
+    });
+
+    if (!reservation) {
+      throw new NotFoundException('Reservation not found');
+    }
+
+    // Verify owner owns the shop
+    if (reservation.room.shop.ownerId !== ownerId) {
+      throw new ForbiddenException('You can only view reservations in your own shops');
+    }
+
+    const allSlots = reservation.slots.map(slot => slot.timeSlot).sort();
+    
+    // Get current time and calculate remaining slots
+    const currentTime = new Date();
+    
+    // Find slots that haven't started yet (consistent with split logic)
+    const remainingSlots = allSlots.filter(slot => {
+      const [slotHour, slotMinute] = slot.split(':').map(Number);
+      const slotStartTime = new Date(reservation.date);
+      slotStartTime.setHours(slotHour, slotMinute, 0, 0);
+      
+      return currentTime < slotStartTime; // Only slots that haven't started yet
+    });
+    
+    // Find consumed slots
+    const consumedSlots = allSlots.filter(slot => {
+      const [slotHour, slotMinute] = slot.split(':').map(Number);
+      const slotStartTime = new Date(reservation.date);
+      slotStartTime.setHours(slotHour, slotMinute, 0, 0);
+      
+      return currentTime >= slotStartTime; // Slots that have started
+    });
+    
+    const canSplit = reservation.status === ReservationStatus.IN_PROGRESS && 
+                     remainingSlots.length >= 2 && 
+                     consumedSlots.length > 0;
+
+    return {
+      reservationId,
+      currentStatus: reservation.status,
+      allSlots,
+      consumedSlots,
+      remainingSlots,
+      canSplit,
+      splitRequirements: {
+        hasStarted: consumedSlots.length > 0,
+        hasRemainingSlots: remainingSlots.length >= 2,
+        isInProgress: reservation.status === ReservationStatus.IN_PROGRESS,
+      }
+    };
+  }
+
+
 }

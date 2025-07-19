@@ -31,6 +31,7 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { OwnerOnlyGuard } from "../auth/owner-only.guard";
 import { PaginationDto, PaginationWithSortDto, PaginationWithSortAndSearchDto } from "../dto/pagination.dto";
 import { ReservationFilterDto } from "../dto/reservation-filter.dto";
+import { SplitReservationDto } from "../dto/split-reservation.dto";
 import { UpdateReservationStatusDto } from "../dto/update-reservation-status.dto";
 import { ReservationStatusService } from "../services/reservation-status.service";
 import {
@@ -225,14 +226,43 @@ export class ReservationController {
     return this.reservationStatusService.getValidStatusTransitions(id, owner.id);
   }
 
-  @Post(':id/auto-update-status')
+  @Get(':id/remaining-slots')
   @UseGuards(OwnerOnlyGuard)
-  @ApiOperation({ summary: 'Manually trigger status update based on time (owner only)' })
-  @ApiResponseSuccess({ message: 'Reservation status updated based on time' })
-  triggerStatusUpdate(
+  @ApiOperation({ 
+    summary: 'Get remaining slots for a reservation (owner only)',
+    description: 'Returns information about remaining time slots that can be split for an in-progress reservation.'
+  })
+  @ApiResponseSuccess({ message: 'Remaining slots retrieved successfully' })
+  getRemainingSlots(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentOwner() owner: Owner,
   ) {
-    return this.reservationStatusService.updateReservationStatusBasedOnTime(id);
+    return this.reservationService.getRemainingSlots(id, owner.id);
   }
+
+  @Post(':id/split')
+  @UseGuards(OwnerOnlyGuard)
+  @ApiOperation({ 
+    summary: 'Split an in-progress reservation into multiple reservations (owner only)',
+    description: 'Allows the owner to split an in-progress reservation into multiple new reservations with different types. Only remaining time slots can be split.'
+  })
+  @ApiResponseSuccess({ message: 'Reservation split successfully' })
+  splitReservation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() splitDto: SplitReservationDto,
+    @CurrentOwner() owner: Owner,
+  ) {
+    return this.reservationService.splitInProgressReservation(id, owner.id, splitDto);
+  }
+
+  // @Post(':id/auto-update-status')
+  // @UseGuards(OwnerOnlyGuard)
+  // @ApiOperation({ summary: 'Manually trigger status update based on time (owner only)' })
+  // @ApiResponseSuccess({ message: 'Reservation status updated based on time' })
+  // triggerStatusUpdate(
+  //   @Param('id', ParseUUIDPipe) id: string,
+  //   @CurrentOwner() owner: Owner,
+  // ) {
+  //   return this.reservationStatusService.updateReservationStatusBasedOnTime(id);
+  // }
 }
