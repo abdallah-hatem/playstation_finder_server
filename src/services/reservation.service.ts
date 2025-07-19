@@ -829,7 +829,10 @@ export class ReservationService {
       throw new ForbiddenException('You can only modify reservations in your own shops');
     }
 
-    // Check if reservation is in progress
+    // Update reservation status based on current time before checking if it's in progress
+    await this.updateReservationStatusBasedOnTime(originalReservation);
+
+    // Check if reservation is in progress (after status update)
     if (originalReservation.status !== ReservationStatus.IN_PROGRESS) {
       throw new BadRequestException('Can only split reservations that are currently in progress');
     }
@@ -1005,6 +1008,9 @@ export class ReservationService {
     if (reservation.room.shop.ownerId !== ownerId) {
       throw new ForbiddenException('You can only view reservations in your own shops');
     }
+
+    // Update reservation status based on current time before calculating remaining slots
+    await this.updateReservationStatusBasedOnTime(reservation);
 
     const allSlots = reservation.slots.map(slot => slot.timeSlot).sort();
     
