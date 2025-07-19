@@ -41,10 +41,11 @@ import { CurrentOwner } from "../common/decorators/current-user.decorator";
 import { Public } from "../common/decorators/public.decorator";
 import { Owner } from "../entities/owner.entity";
 import { multerConfig, multipleImagesConfig } from "../config/multer.config";
-import { PaginationDto, PaginationWithSortDto } from "../dto/pagination.dto";
+import { PaginationDto, PaginationWithSortDto, PaginationWithSortAndSearchDto } from "../dto/pagination.dto";
 import {
   ApiPagination,
   ApiPaginationWithSort,
+  ApiPaginationWithSortAndSearch,
 } from "../common/decorators/pagination.decorator";
 
 @ApiTags("shops")
@@ -141,16 +142,16 @@ export class ShopController {
   @Get()
   @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
   @ApiBearerAuth("JWT-auth")
-  @ApiOperation({ summary: "Get owner shops with pagination and sorting" })
-  @ApiPaginationWithSort()
+  @ApiOperation({ summary: "Get owner shops with pagination, sorting, and search" })
+  @ApiPaginationWithSortAndSearch()
   @ApiResponseSuccess({ message: "Owner shops retrieved successfully" })
-  findMyShopsPaginatedWithSort(
-    @Query() paginationWithSortDto: PaginationWithSortDto,
+  findMyShopsPaginatedWithSortAndSearch(
+    @Query() paginationWithSortAndSearchDto: PaginationWithSortAndSearchDto,
     @CurrentOwner() owner: Owner
   ) {
-    return this.shopService.findByOwnerPaginatedWithSort(
+    return this.shopService.findByOwnerWithSearchPaginatedWithSort(
       owner.id,
-      paginationWithSortDto
+      paginationWithSortAndSearchDto
     );
   }
 
@@ -193,9 +194,9 @@ export class ShopController {
   @Get("all")
   @Public()
   @ApiOperation({
-    summary: "Get all shops with pagination and sorting (public)",
+    summary: "Get all shops with pagination, sorting, and search (public)",
   })
-  @ApiPaginationWithSort()
+  @ApiPaginationWithSortAndSearch()
   @ApiQuery({
     name: "deviceId",
     description: "Filter by device ID",
@@ -207,13 +208,13 @@ export class ShopController {
     required: false,
   })
   @ApiResponseSuccess({ message: "All shops retrieved successfully" })
-  findAllPaginatedWithSort(
-    @Query() paginationWithSortDto: PaginationWithSortDto,
+  findAllPaginatedWithSortAndSearch(
+    @Query() paginationWithSortAndSearchDto: PaginationWithSortAndSearchDto,
     @Query("deviceId") deviceId?: string,
     @Query("device") device?: string
   ) {
-    return this.shopService.findAllPaginatedWithSort(
-      paginationWithSortDto,
+    return this.shopService.findAllWithSearchPaginatedWithSort(
+      paginationWithSortAndSearchDto,
       deviceId,
       device
     );

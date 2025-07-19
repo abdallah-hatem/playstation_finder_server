@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Shop } from '../entities/shop.entity';
 import { BaseRepository } from '../common/repository/base.repository';
 
@@ -72,5 +72,116 @@ export class ShopRepository extends BaseRepository<Shop> {
     }
 
     return await queryBuilder.getMany();
+  }
+
+  /**
+   * Apply search filter to a query builder
+   * Searches across shop name, address, phone, owner name, email, and device names
+   */
+  private applySearchFilter(
+    queryBuilder: SelectQueryBuilder<Shop>,
+    searchTerm: string
+  ): SelectQueryBuilder<Shop> {
+    if (!searchTerm || searchTerm.trim() === '') {
+      return queryBuilder;
+    }
+
+    const searchPattern = `%${searchTerm.toLowerCase()}%`;
+    
+    return queryBuilder.andWhere(
+      `(
+        LOWER(shop.name) LIKE :search OR 
+        LOWER(shop.address) LIKE :search OR 
+        LOWER(shop.phone) LIKE :search OR 
+        LOWER(owner.name) LIKE :search OR 
+        LOWER(owner.email) LIKE :search OR 
+        LOWER(device.name) LIKE :search
+      )`,
+      { search: searchPattern }
+    );
+  }
+
+  /**
+   * Find shops by owner with search, pagination and sorting
+   */
+  async findByOwnerWithSearchAndPagination(
+    ownerId: string,
+    page: number = 1,
+    limit: number = 10,
+    searchTerm?: string,
+    sortBy: string = 'createdAt',
+    sortOrder: 'ASC' | 'DESC' = 'DESC'
+  ): Promise<{ data: Shop[]; total: number }> {
+    let queryBuilder = this.shopRepository
+      .createQueryBuilder('shop')
+      .leftJoinAndSelect('shop.owner', 'owner')
+      .leftJoinAndSelect('shop.rooms', 'rooms')
+      .leftJoinAndSelect('rooms.device', 'device')
+      .where('shop.ownerId = :ownerId', { ownerId });
+
+    // Apply search filter
+    queryBuilder = this.applySearchFilter(queryBuilder, searchTerm);
+
+    // Apply sorting
+    const validSortFields = ['createdAt', 'name', 'address', 'phone'];
+    const sortField = validSortFields.includes(sortBy) ? `shop.${sortBy}` : 'shop.createdAt';
+    queryBuilder = queryBuilder.orderBy(sortField, sortOrder);
+
+    // Apply pagination
+    const offset = (page - 1) * limit;
+    queryBuilder = queryBuilder.skip(offset).take(limit);
+
+    // Get results and count
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    return { data, total };
+  }
+
+  /**
+   * Find all shops with search, pagination and sorting
+   */
+  async findAllWithSearchAndPagination(
+    page: number = 1,
+    limit: number = 10,
+    searchTerm?: string,
+    sortBy: string = 'createdAt',
+    sortOrder: 'ASC' | 'DESC' = 'DESC',
+    deviceId?: string,
+    deviceName?: string
+  ): Promise<{ data: Shop[]; total: number }> {
+    let queryBuilder = this.shopRepository
+      .createQueryBuilder('shop')
+      .leftJoinAndSelect('shop.owner', 'owner')
+      .leftJoinAndSelect('shop.rooms', 'rooms')
+      .leftJoinAndSelect('rooms.device', 'device');
+
+    // Apply device filters
+    if (deviceId) {
+      queryBuilder = queryBuilder.where('rooms.deviceId = :deviceId', { deviceId });
+    }
+
+    if (deviceName) {
+      const condition = deviceId ? 'andWhere' : 'where';
+      queryBuilder = queryBuilder[condition]('LOWER(device.name) LIKE LOWER(:deviceName)', { 
+        deviceName: `%${deviceName}%` 
+      });
+    }
+
+    // Apply search filter
+    queryBuilder = this.applySearchFilter(queryBuilder, searchTerm);
+
+    // Apply sorting
+    const validSortFields = ['createdAt', 'name', 'address', 'phone'];
+    const sortField = validSortFields.includes(sortBy) ? `shop.${sortBy}` : 'shop.createdAt';
+    queryBuilder = queryBuilder.orderBy(sortField, sortOrder);
+
+    // Apply pagination
+    const offset = (page - 1) * limit;
+    queryBuilder = queryBuilder.skip(offset).take(limit);
+
+    // Get results and count
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    return { data, total };
   }
 } 

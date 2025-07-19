@@ -1,6 +1,6 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiQuery, ApiExtraModels, getSchemaPath } from '@nestjs/swagger';
-import { PaginationDto, PaginationWithSortDto } from '../../dto/pagination.dto';
+import { PaginationDto, PaginationWithSortDto, PaginationWithSortAndSearchDto } from '../../dto/pagination.dto';
 
 export function ApiPagination() {
   return applyDecorators(
@@ -37,6 +37,19 @@ export function ApiPaginationWithSort() {
       enum: ['ASC', 'DESC'],
       description: 'Sort order (default: DESC)',
       example: 'DESC',
+    }),
+  );
+}
+
+export function ApiPaginationWithSortAndSearch() {
+  return applyDecorators(
+    ApiPaginationWithSort(),
+    ApiQuery({
+      name: 'search',
+      required: false,
+      type: String,
+      description: 'Search query to filter results across multiple fields (user name, room name, shop name, address, phone, etc.)',
+      example: 'john',
     }),
   );
 }

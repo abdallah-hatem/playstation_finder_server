@@ -16,7 +16,7 @@ import { CreateReservationDto } from "../dto/create-reservation.dto";
 import { Reservation } from "../entities/reservation.entity";
 import { ReservationSlot } from "../entities/reservation-slot.entity";
 import { ReservationType } from "../common/enums/reservation-type.enum";
-import { PaginationDto, PaginationWithSortDto } from "../dto/pagination.dto";
+import { PaginationDto, PaginationWithSortDto, PaginationWithSortAndSearchDto } from "../dto/pagination.dto";
 import { PaginatedResponse } from "../common/interfaces/api-response.interface";
 
 @Injectable()
@@ -314,6 +314,38 @@ export class ReservationService {
     );
   }
 
+  async findByUserWithSearchPaginatedWithSort(
+    userId: string,
+    paginationWithSortAndSearchDto: PaginationWithSortAndSearchDto
+  ): Promise<PaginatedResponse<Reservation>> {
+    const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'DESC', search } = paginationWithSortAndSearchDto;
+    
+    const { data, total } = await this.reservationRepository.findByUserWithSearchAndPagination(
+      userId,
+      page,
+      limit,
+      search,
+      sortBy,
+      sortOrder
+    );
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      success: true,
+      message: "My reservations retrieved successfully",
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: totalPages,
+      },
+      statusCode: 200,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
   async findByRoom(roomId: string): Promise<Reservation[]> {
     return await this.reservationRepository.findByRoomId(roomId);
   }
@@ -438,6 +470,45 @@ export class ReservationService {
       },
       { sortBy, sortOrder }
     );
+  }
+
+  async findByOwnerWithSearchPaginatedWithSort(
+    ownerId: string,
+    paginationWithSortAndSearchDto: PaginationWithSortAndSearchDto,
+    shopId?: string
+  ): Promise<PaginatedResponse<Reservation>> {
+    const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'DESC', search } = paginationWithSortAndSearchDto;
+    
+    // Verify the owner owns the shop if shopId is provided
+    if (shopId) {
+      await this.verifyOwnerOwnsShop(shopId, ownerId);
+    }
+
+    const { data, total } = await this.reservationRepository.findByOwnerWithSearchAndPagination(
+      ownerId,
+      page,
+      limit,
+      search,
+      sortBy,
+      sortOrder,
+      shopId
+    );
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      success: true,
+      message: "Owner reservations retrieved successfully",
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: totalPages,
+      },
+      statusCode: 200,
+      timestamp: new Date().toISOString(),
+    };
   }
 
   async findByShop(shopId: string): Promise<Reservation[]> {

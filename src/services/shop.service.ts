@@ -3,7 +3,7 @@ import { ShopRepository } from '../repositories/shop.repository';
 import { OwnerRepository } from '../repositories/owner.repository';
 import { CreateShopDto, CreateShopWithImagesDto, UpdateShopWithImagesDto } from '../dto/create-shop.dto';
 import { Shop } from '../entities/shop.entity';
-import { PaginationDto, PaginationWithSortDto } from '../dto/pagination.dto';
+import { PaginationDto, PaginationWithSortDto, PaginationWithSortAndSearchDto } from '../dto/pagination.dto';
 import { PaginatedResponse } from '../common/interfaces/api-response.interface';
 
 @Injectable()
@@ -174,6 +174,65 @@ export class ShopService {
       },
       { sortBy, sortOrder },
     );
+  }
+
+  async findByOwnerWithSearchPaginatedWithSort(ownerId: string, paginationWithSortAndSearchDto: PaginationWithSortAndSearchDto): Promise<PaginatedResponse<Shop>> {
+    const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'DESC', search } = paginationWithSortAndSearchDto;
+    
+    const { data, total } = await this.shopRepository.findByOwnerWithSearchAndPagination(
+      ownerId,
+      page,
+      limit,
+      search,
+      sortBy,
+      sortOrder
+    );
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      success: true,
+      message: 'Owner shops retrieved successfully',
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: totalPages,
+      },
+      statusCode: 200,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  async findAllWithSearchPaginatedWithSort(paginationWithSortAndSearchDto: PaginationWithSortAndSearchDto, deviceId?: string, deviceName?: string): Promise<PaginatedResponse<Shop>> {
+    const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'DESC', search } = paginationWithSortAndSearchDto;
+    
+    const { data, total } = await this.shopRepository.findAllWithSearchAndPagination(
+      page,
+      limit,
+      search,
+      sortBy,
+      sortOrder,
+      deviceId,
+      deviceName
+    );
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      success: true,
+      message: 'All shops retrieved successfully',
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: totalPages,
+      },
+      statusCode: 200,
+      timestamp: new Date().toISOString(),
+    };
   }
 
   async findNearby(lat: string, long: string, radius: string = '10'): Promise<Shop[]> {

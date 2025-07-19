@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, MoreThan } from "typeorm";
+import { Repository, MoreThan, SelectQueryBuilder } from "typeorm";
 import { Reservation } from "../entities/reservation.entity";
 import { BaseRepository } from "../common/repository/base.repository";
 
@@ -100,5 +100,117 @@ export class ReservationRepository extends BaseRepository<Reservation> {
       .orderBy("room.name", "ASC")
       .addOrderBy("reservation.date", "DESC")
       .getMany();
+  }
+
+  /**
+   * Apply search filter to a query builder
+   * Searches across user name, email, phone, room name, shop name, address, phone, and reservation type
+   */
+  private applySearchFilter(
+    queryBuilder: SelectQueryBuilder<Reservation>,
+    searchTerm: string
+  ): SelectQueryBuilder<Reservation> {
+    if (!searchTerm || searchTerm.trim() === '') {
+      return queryBuilder;
+    }
+
+    const searchPattern = `%${searchTerm.toLowerCase()}%`;
+    
+    return queryBuilder.andWhere(
+      `(
+        LOWER(user.name) LIKE :search OR 
+        LOWER(user.email) LIKE :search OR 
+        LOWER(user.phone) LIKE :search OR 
+        LOWER(room.name) LIKE :search OR 
+        LOWER(shop.name) LIKE :search OR 
+        LOWER(shop.address) LIKE :search OR 
+        LOWER(shop.phone) LIKE :search OR 
+        LOWER(CAST(reservation.type AS TEXT)) LIKE :search OR
+        CAST(reservation.totalPrice AS TEXT) LIKE :search
+      )`,
+      { search: searchPattern }
+    );
+  }
+
+  /**
+   * Find reservations by owner with search, pagination and sorting
+   */
+  async findByOwnerWithSearchAndPagination(
+    ownerId: string,
+    page: number = 1,
+    limit: number = 10,
+    searchTerm?: string,
+    sortBy: string = 'createdAt',
+    sortOrder: 'ASC' | 'DESC' = 'DESC',
+    shopId?: string
+  ): Promise<{ data: Reservation[]; total: number }> {
+    let queryBuilder = this.reservationRepository
+      .createQueryBuilder("reservation")
+      .leftJoinAndSelect("reservation.room", "room")
+      .leftJoinAndSelect("room.shop", "shop")
+      .leftJoinAndSelect("room.device", "device")
+      .leftJoinAndSelect("reservation.user", "user")
+      .leftJoinAndSelect("reservation.slots", "slots")
+      .where("shop.ownerId = :ownerId", { ownerId });
+
+    // Apply shop filter if provided
+    if (shopId) {
+      queryBuilder = queryBuilder.andWhere("shop.id = :shopId", { shopId });
+    }
+
+    // Apply search filter
+    queryBuilder = this.applySearchFilter(queryBuilder, searchTerm);
+
+    // Apply sorting
+    const validSortFields = ['createdAt', 'date', 'totalPrice', 'type'];
+    const sortField = validSortFields.includes(sortBy) ? `reservation.${sortBy}` : 'reservation.createdAt';
+    queryBuilder = queryBuilder.orderBy(sortField, sortOrder);
+
+    // Apply pagination
+    const offset = (page - 1) * limit;
+    queryBuilder = queryBuilder.skip(offset).take(limit);
+
+    // Get results and count
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    return { data, total };
+  }
+
+  /**
+   * Find reservations by user with search, pagination and sorting
+   */
+  async findByUserWithSearchAndPagination(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+    searchTerm?: string,
+    sortBy: string = 'createdAt',
+    sortOrder: 'ASC' | 'DESC' = 'DESC'
+  ): Promise<{ data: Reservation[]; total: number }> {
+    let queryBuilder = this.reservationRepository
+      .createQueryBuilder("reservation")
+      .leftJoinAndSelect("reservation.room", "room")
+      .leftJoinAndSelect("room.shop", "shop")
+      .leftJoinAndSelect("room.device", "device")
+      .leftJoinAndSelect("reservation.user", "user")
+      .leftJoinAndSelect("reservation.slots", "slots")
+      .where("reservation.userId = :userId", { userId });
+
+    // Apply search filter
+    queryBuilder = this.applySearchFilter(queryBuilder, searchTerm);
+
+    // Apply sorting
+    const validSortFields = ['createdAt', 'date', 'totalPrice', 'type'];
+    const sortField = validSortFields.includes(sortBy) ? `reservation.${sortBy}` : 'reservation.createdAt';
+    queryBuilder = queryBuilder.orderBy(sortField, sortOrder);
+
+    // Apply pagination
+    const offset = (page - 1) * limit;
+    queryBuilder = queryBuilder.skip(offset).take(limit);
+
+    // Get results and count
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    return { data, total };
   }
 }

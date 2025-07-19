@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsOptional, IsPositive, Max, Min } from 'class-validator';
+import { IsOptional, IsPositive, Max, Min, IsString } from 'class-validator';
 
 export class PaginationDto {
   @ApiPropertyOptional({
@@ -64,4 +64,14 @@ export class PaginationWithSortDto extends PaginationDto {
   })
   @IsOptional()
   sortOrder?: 'ASC' | 'DESC' = 'DESC';
+}
+
+export class PaginationWithSortAndSearchDto extends PaginationWithSortDto {
+  @ApiPropertyOptional({
+    description: 'Search query to filter results across multiple fields (user name, room name, shop name, address, phone, etc.)',
+    example: 'john',
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
 } 

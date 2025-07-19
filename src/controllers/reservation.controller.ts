@@ -28,10 +28,11 @@ import { User } from "../entities/user.entity";
 import { Owner } from "../entities/owner.entity";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { OwnerOnlyGuard } from "../auth/owner-only.guard";
-import { PaginationDto, PaginationWithSortDto } from "../dto/pagination.dto";
+import { PaginationDto, PaginationWithSortDto, PaginationWithSortAndSearchDto } from "../dto/pagination.dto";
 import {
   ApiPagination,
   ApiPaginationWithSort,
+  ApiPaginationWithSortAndSearch,
 } from "../common/decorators/pagination.decorator";
 
 @ApiTags("reservations")
@@ -85,16 +86,15 @@ export class ReservationController {
   //   return this.reservationService.findByUser(user.id);
   // }
 
-
   @Get("my-reservations")
-  @ApiOperation({ summary: "Get current user reservations with pagination and sorting" })
-  @ApiPaginationWithSort()
+  @ApiOperation({ summary: "Get current user reservations with pagination, sorting, and search" })
+  @ApiPaginationWithSortAndSearch()
   @ApiResponseSuccess({ message: "My reservations retrieved successfully" })
-  findMyReservationsPaginatedWithSort(
-    @Query() paginationWithSortDto: PaginationWithSortDto,
+  findMyReservationsPaginatedWithSortAndSearch(
+    @Query() paginationWithSortAndSearchDto: PaginationWithSortAndSearchDto,
     @CurrentAppUser() user: User
   ) {
-    return this.reservationService.findByUserPaginatedWithSort(user.id, paginationWithSortDto);
+    return this.reservationService.findByUserWithSearchPaginatedWithSort(user.id, paginationWithSortAndSearchDto);
   }
 
   // @Get("my-owner-reservations")
@@ -107,11 +107,10 @@ export class ReservationController {
   //   return this.reservationService.findByOwner(owner.id);
   // }
 
-
   @Get("my-owner-reservations")
   @UseGuards(OwnerOnlyGuard)
-  @ApiOperation({ summary: "Get current owner reservations with pagination and sorting" })
-  @ApiPaginationWithSort()
+  @ApiOperation({ summary: "Get current owner reservations with pagination, sorting, and search" })
+  @ApiPaginationWithSortAndSearch()
   @ApiQuery({
     name: "shopId",
     description: "Filter by shop ID",
@@ -120,12 +119,12 @@ export class ReservationController {
   @ApiResponseSuccess({
     message: "My owner reservations retrieved successfully",
   })
-  findMyOwnerReservationsPaginatedWithSort(
-    @Query() paginationWithSortDto: PaginationWithSortDto,
+  findMyOwnerReservationsPaginatedWithSortAndSearch(
+    @Query() paginationWithSortAndSearchDto: PaginationWithSortAndSearchDto,
     @CurrentOwner() owner: Owner,
     @Query("shopId") shopId?: string
   ) {
-    return this.reservationService.findByOwnerPaginatedWithSort(owner.id, paginationWithSortDto, shopId);
+    return this.reservationService.findByOwnerWithSearchPaginatedWithSort(owner.id, paginationWithSortAndSearchDto, shopId);
   }
 
   // @Get('all/paginated')
