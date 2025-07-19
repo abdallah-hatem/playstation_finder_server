@@ -11,32 +11,40 @@ import {
   Query,
   ParseBoolPipe,
   UseGuards,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
-import { RoomService } from '../services/room.service';
-import { CreateRoomDto } from '../dto/create-room.dto';
-import { UpdateRoomRatesDto } from '../dto/update-room-rates.dto';
-import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
-import { ApiResponseSuccess } from '../common/decorators/api-response.decorator';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { OwnerOnlyGuard } from '../auth/owner-only.guard';
-import { Public } from '../common/decorators/public.decorator';
-import { CurrentOwner } from '../common/decorators/current-user.decorator';
-import { Owner } from '../entities/owner.entity';
-import { PaginationDto, PaginationWithSortDto } from '../dto/pagination.dto';
-import { ApiPagination, ApiPaginationWithSort } from '../common/decorators/pagination.decorator';
+} from "@nestjs/common";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+  ApiBearerAuth,
+} from "@nestjs/swagger";
+import { RoomService } from "../services/room.service";
+import { CreateRoomDto } from "../dto/create-room.dto";
+import { UpdateRoomRatesDto } from "../dto/update-room-rates.dto";
+import { ResponseInterceptor } from "../common/interceptors/response.interceptor";
+import { ApiResponseSuccess } from "../common/decorators/api-response.decorator";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { OwnerOnlyGuard } from "../auth/owner-only.guard";
+import { Public } from "../common/decorators/public.decorator";
+import { CurrentOwner } from "../common/decorators/current-user.decorator";
+import { Owner } from "../entities/owner.entity";
+import { PaginationDto, PaginationWithSortDto } from "../dto/pagination.dto";
+import {
+  ApiPagination,
+  ApiPaginationWithSort,
+} from "../common/decorators/pagination.decorator";
 
-@ApiTags('rooms')
-@Controller('rooms')
+@ApiTags("rooms")
+@Controller("rooms")
 @UseInterceptors(ResponseInterceptor)
 export class RoomController {
   constructor(private readonly roomService: RoomService) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Create a new room (owner only)' })
-  @ApiResponseSuccess({ message: 'Room created successfully' })
+  @ApiBearerAuth("JWT-auth")
+  @ApiOperation({ summary: "Create a new room (owner only)" })
+  @ApiResponseSuccess({ message: "Room created successfully" })
   create(@Body() createRoomDto: CreateRoomDto) {
     return this.roomService.create(createRoomDto);
   }
@@ -62,12 +70,18 @@ export class RoomController {
 
   @Get()
   @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get owner rooms with pagination and sorting' })
+  @ApiBearerAuth("JWT-auth")
+  @ApiOperation({ summary: "Get owner rooms with pagination and sorting" })
   @ApiPaginationWithSort()
-  @ApiResponseSuccess({ message: 'Owner rooms retrieved successfully' })
-  findMyRoomsPaginatedWithSort(@Query() paginationWithSortDto: PaginationWithSortDto, @CurrentOwner() owner: Owner) {
-    return this.roomService.findByOwnerPaginatedWithSort(owner.id, paginationWithSortDto);
+  @ApiResponseSuccess({ message: "Owner rooms retrieved successfully" })
+  findMyRoomsPaginatedWithSort(
+    @Query() paginationWithSortDto: PaginationWithSortDto,
+    @CurrentOwner() owner: Owner
+  ) {
+    return this.roomService.findByOwnerPaginatedWithSort(
+      owner.id,
+      paginationWithSortDto
+    );
   }
 
   // @Get('all/paginated')
@@ -79,12 +93,16 @@ export class RoomController {
   //   return this.roomService.findAllPaginated(paginationDto);
   // }
 
-  @Get('all')
+  @Get("all")
   @Public()
-  @ApiOperation({ summary: 'Get all rooms with pagination and sorting (public)' })
+  @ApiOperation({
+    summary: "Get all rooms with pagination and sorting (public)",
+  })
   @ApiPaginationWithSort()
-  @ApiResponseSuccess({ message: 'All rooms retrieved successfully' })
-  findAllPaginatedWithSort(@Query() paginationWithSortDto: PaginationWithSortDto) {
+  @ApiResponseSuccess({ message: "All rooms retrieved successfully" })
+  findAllPaginatedWithSort(
+    @Query() paginationWithSortDto: PaginationWithSortDto
+  ) {
     return this.roomService.findAllPaginatedWithSort(paginationWithSortDto);
   }
 
@@ -105,14 +123,25 @@ export class RoomController {
   //   return this.roomService.findAvailable(shopId);
   // }
 
-  @Get('shop/:shopId')
+  @Get("shop/:shopId")
   @Public()
-  @ApiOperation({ summary: 'Get rooms by shop with time slot rates and availability status for a specific date' })
-  @ApiQuery({ name: 'date', description: 'Date to get room data and check availability (YYYY-MM-DD), defaults to today', required: false })
-  @ApiResponseSuccess({ message: 'Shop rooms with time slot rates and availability retrieved successfully' })
+  @ApiOperation({
+    summary:
+      "Get rooms by shop with time slot rates and availability status for a specific date",
+  })
+  @ApiQuery({
+    name: "date",
+    description:
+      "Date to get room data and check availability (YYYY-MM-DD), defaults to today",
+    required: false,
+  })
+  @ApiResponseSuccess({
+    message:
+      "Shop rooms with time slot rates and availability retrieved successfully",
+  })
   findByShop(
-    @Param('shopId', ParseUUIDPipe) shopId: string,
-    @Query('date') date?: string,
+    @Param("shopId", ParseUUIDPipe) shopId: string,
+    @Query("date") date?: string
   ) {
     return this.roomService.findByShopForDate(shopId, date);
   }
@@ -125,11 +154,13 @@ export class RoomController {
   //   return this.roomService.findByDevice(deviceId);
   // }
 
-  @Get(':id')
+  @Get(":id")
   @Public()
-  @ApiOperation({ summary: 'Get room by ID with reservations' })
-  @ApiResponseSuccess({ message: 'Room with reservations retrieved successfully' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
+  @ApiOperation({ summary: "Get room by ID with reservations" })
+  @ApiResponseSuccess({
+    message: "Room with reservations retrieved successfully",
+  })
+  findOne(@Param("id", ParseUUIDPipe) id: string) {
     return this.roomService.findOneById(id);
   }
 
@@ -142,16 +173,21 @@ export class RoomController {
   //   return this.roomService.getTimeSlotRatesWithinOperatingHours(id);
   // }
 
-  // @Get(':id/operating-hours-rates')
-  // @Public()
-  // @ApiOperation({ 
-  //   summary: 'Get room with time slot rates filtered by shop operating hours', 
-  //   description: 'Returns only time slot rates that fall within the shop\'s opening and closing times'
-  // })
-  // @ApiResponseSuccess({ message: 'Room with operating hours time slot rates retrieved successfully' })
-  // findTimeSlotRatesWithinOperatingHours(@Param('id', ParseUUIDPipe) id: string) {
-  //   return this.roomService.getTimeSlotRatesWithinOperatingHours(id);
-  // }
+  @Get(":id/operating-hours-rates")
+  @Public()
+  @ApiOperation({
+    summary: "Get room with time slot rates filtered by shop operating hours",
+    description:
+      "Returns only time slot rates that fall within the shop's opening and closing times",
+  })
+  @ApiResponseSuccess({
+    message: "Room with operating hours time slot rates retrieved successfully",
+  })
+  findTimeSlotRatesWithinOperatingHours(
+    @Param("id", ParseUUIDPipe) id: string
+  ) {
+    return this.roomService.getTimeSlotRatesWithinOperatingHours(id);
+  }
 
   // @Get(':id/availability/:date')
   // @Public()
@@ -164,21 +200,21 @@ export class RoomController {
   //   return this.roomService.getAvailableTimeSlots(id, date);
   // }
 
-  @Patch(':id')
+  @Patch(":id")
   @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ 
-    summary: 'Update room (owner only)', 
-    description: 'Updates room details. If default rates (singleHourlyRate, multiHourlyRate, otherHourlyRate) are updated, ALL time slot rates for this room will be automatically updated to match the new default rates.'
+  @ApiBearerAuth("JWT-auth")
+  @ApiOperation({
+    summary: "Update room (owner only)",
+    description:
+      "Updates room details. If default rates (singleHourlyRate, multiHourlyRate, otherHourlyRate) are updated, ALL time slot rates for this room will be automatically updated to match the new default rates.",
   })
-  @ApiResponseSuccess({ message: 'Room updated successfully' })
+  @ApiResponseSuccess({ message: "Room updated successfully" })
   update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateRoomDto: Partial<CreateRoomDto>,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() updateRoomDto: Partial<CreateRoomDto>
   ) {
     return this.roomService.update(id, updateRoomDto);
   }
-
 
   // @Patch(':id/availability')
   // @ApiBearerAuth()
@@ -191,12 +227,12 @@ export class RoomController {
   //   return this.roomService.updateAvailability(id, isAvailable);
   // }
 
-  @Delete(':id')
+  @Delete(":id")
   @UseGuards(JwtAuthGuard, OwnerOnlyGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Delete room (owner only)' })
-  @ApiResponseSuccess({ message: 'Room deleted successfully' })
-  remove(@Param('id', ParseUUIDPipe) id: string) {
+  @ApiBearerAuth("JWT-auth")
+  @ApiOperation({ summary: "Delete room (owner only)" })
+  @ApiResponseSuccess({ message: "Room deleted successfully" })
+  remove(@Param("id", ParseUUIDPipe) id: string) {
     return this.roomService.remove(id);
   }
-} 
+}
